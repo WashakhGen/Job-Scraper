@@ -1,6 +1,8 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 
 from backend.core.logging import log_main
+from backend.databases.session import AsyncSessionLocal
+from backend.databases.utils import save_jobs
 from backend.schema.scrape import ScrapeRequest, ScrapeResponse
 from backend.scrapers.registry import SCRAPERS
 
@@ -12,7 +14,9 @@ async def _run_scrape(
 ):
     adapter = SCRAPERS[source](client=app_state.apify_client)  # pyright: ignore[reportCallIssue]
     jobs = await adapter.fetch(keywords, location, limit)
-    log_main(f"{source}: fetched {len(jobs)} jobs")
+    async with AsyncSessionLocal() as session:
+        inserted = await save_jobs(session, jobs)
+    log_main(f"{source}: fetched {len(jobs)} jobs, {inserted} new")
 
 
 @router.post("/{source}", response_model=ScrapeResponse)

@@ -7,7 +7,8 @@ from fastapi import FastAPI
 
 from backend.core.logging import log_main
 from backend.core.settings import SETTINGS
-from backend.routes.api import scrape
+from backend.databases.session import engine, init_models
+from backend.routes.api import jobs, scrape
 from backend.scrapers import sources  # noqa: F401 — triggers @register on import
 
 logging.getLogger("uvicorn.access").setLevel(logging.ERROR)
@@ -16,11 +17,14 @@ logging.getLogger("uvicorn.access").setLevel(logging.ERROR)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.apify_client = ApifyClientAsync(SETTINGS.APIFY_API_TOKEN)
+    await init_models()
     yield
+    await engine.dispose()
 
 
 app = FastAPI(title="Job Scrapper", lifespan=lifespan)
 app.include_router(scrape.router, prefix="/api/scrape")
+app.include_router(jobs.router, prefix="/api/jobs")
 
 
 @app.get("/")
