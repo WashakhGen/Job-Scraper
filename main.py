@@ -1,6 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 
+import httpx
 import uvicorn
 from apify_client import ApifyClientAsync
 from fastapi import FastAPI
@@ -17,8 +18,10 @@ logging.getLogger("uvicorn.access").setLevel(logging.ERROR)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.apify_client = ApifyClientAsync(SETTINGS.APIFY_API_TOKEN)
+    app.state.http_client = httpx.AsyncClient()
     await init_models()
     yield
+    await app.state.http_client.aclose()
     await engine.dispose()
 
 

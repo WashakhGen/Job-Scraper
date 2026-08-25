@@ -15,6 +15,7 @@ class Settings(BaseSettings):
 
     # apify
     APIFY_API_TOKEN: str = ""
+    APIFY_RESULT_LIMIT: int = 25
 
     # scoring / scheduling
     MIN_SCORE: int = 70

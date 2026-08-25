@@ -12,7 +12,9 @@ router = APIRouter(tags=["scrape"])
 async def _run_scrape(
     app_state, source: str, keywords: list[str], location: str | None, limit: int
 ):
-    adapter = SCRAPERS[source](client=app_state.apify_client)  # pyright: ignore[reportCallIssue]
+    adapter_cls = SCRAPERS[source]
+    client = app_state.apify_client if adapter_cls.client_kind == "apify" else app_state.http_client
+    adapter = adapter_cls(client=client)  # pyright: ignore[reportCallIssue]  # ty: ignore[unknown-argument]
     jobs = await adapter.fetch(keywords, location, limit)
     async with AsyncSessionLocal() as session:
         inserted = await save_jobs(session, jobs)

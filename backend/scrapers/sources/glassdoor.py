@@ -1,14 +1,16 @@
+from datetime import UTC, datetime, timedelta
+
 from apify_client import ApifyClientAsync
 
 from backend.scrapers.base import RawJob, ScraperAdapter
 from backend.scrapers.registry import register
 
-ACTOR_ID = "valig/indeed-jobs-scraper"
+ACTOR_ID = "valig/glassdoor-jobs-scraper"
 
 
-@register("indeed")
-class IndeedScraper(ScraperAdapter):
-    name = "indeed"
+@register("glassdoor")
+class GlassDoorScraper(ScraperAdapter):
+    name = "glassdoor"
     client_kind = "apify"
 
     def __init__(self, client: ApifyClientAsync, country: str = "pk"):
@@ -22,15 +24,21 @@ class IndeedScraper(ScraperAdapter):
         actor = self.client.actor(ACTOR_ID)
 
         for keyword in keywords:
-            run = await actor.call(
-                run_input={
-                    "country": self.country,
-                    "title": keyword,
-                    "location": location or "",
-                    "datePosted": "7",
-                    "limit": limit,
-                }
-            )
+            is_remote = location is not None and "remote" in location.lower()
+
+            run_input: dict = {
+                "daysOld": 30,
+                "easyApply": False,
+                "keywords": keyword,
+                "limit": limit,
+                "remoteWorkType": is_remote,
+                "sortBy": "relevant_desc",
+            }
+
+            if not is_remote and location:
+                run_input["location"] = location
+
+            run = await actor.call(run_input=run_input)
             if run is None:
                 continue
 
@@ -42,13 +50,16 @@ class IndeedScraper(ScraperAdapter):
                     continue
                 job = RawJob(
                     source=self.name,
-                    external_id=item["key"],
+                    external_id=str(item["id"]),
                     title=item["title"],
                     company=item.get("employer", {}).get("name", ""),
-                    location=item.get("location", {}).get("city", ""),
+                    location=item.get("location", {}).get("name")
+                    or ("Remote" if is_remote else ""),
                     url=item["url"],
-                    description=item.get("description", {}).get("text", ""),
-                    posted_at=item.get("datePublished"),
+                    description=item.get("description", ""),
+                    posted_at=(
+                        datetime.now(UTC) - timedelta(days=item.get("ageInDays", 0))
+                    ).isoformat(timespec="seconds"),
                 )
                 seen[job.external_id] = job  # dedupe across keyword calls
 
