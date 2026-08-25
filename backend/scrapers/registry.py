@@ -1,5 +1,5 @@
-from backend.core.logging import log_main
 from backend.scrapers.base import ScraperAdapter
+from core.logging import log_main
 
 SCRAPERS: dict[str, type[ScraperAdapter]] = {}
 

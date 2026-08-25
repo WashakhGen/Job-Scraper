@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from backend.core.settings import SETTINGS
+from core.settings import SETTINGS
 
 
 class ScrapeRequest(BaseModel):

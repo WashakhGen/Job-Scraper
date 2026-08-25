@@ -2,7 +2,7 @@ import logging
 import pathlib
 from typing import Any
 
-from backend.core.settings import SETTINGS
+from core.settings import SETTINGS
 
 MAIN_LOG_FILE = f"{SETTINGS.LOG_DIR}/api-main.log"
 FORMATTER = logging.Formatter(

@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 import httpx
@@ -6,13 +7,14 @@ import uvicorn
 from apify_client import ApifyClientAsync
 from fastapi import FastAPI
 
-from backend.core.logging import log_main
-from backend.core.settings import SETTINGS
 from backend.databases.session import engine, init_models
-from backend.routes.api import jobs, scrape
+from backend.routes.api import cv, jobs, scrape
 from backend.scrapers import sources  # noqa: F401 — triggers @register on import
+from core.logging import log_main
+from core.settings import SETTINGS
 
 logging.getLogger("uvicorn.access").setLevel(logging.ERROR)
+os.makedirs(SETTINGS.CV_UPLOAD_DIR, exist_ok=True)
 
 
 @asynccontextmanager
@@ -28,6 +30,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Job Scrapper", lifespan=lifespan)
 app.include_router(scrape.router, prefix="/api/scrape")
 app.include_router(jobs.router, prefix="/api/jobs")
+app.include_router(cv.router, prefix="/api/cv")
 
 
 @app.get("/")

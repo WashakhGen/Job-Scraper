@@ -26,5 +26,9 @@ class Settings(BaseSettings):
     # logs
     LOG_DIR: str = "./logs"
 
+    # CV Uploads
+    MAX_CVS: int = 3
+    CV_UPLOAD_DIR: str = "./media/cvs"
+
 
 SETTINGS = Settings()

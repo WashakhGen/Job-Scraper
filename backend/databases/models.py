@@ -22,3 +22,14 @@ class JobPosting(Base):
     # revisit once multiple sources disagree on date format
     posted_at: Mapped[str | None] = mapped_column(String(50), nullable=True)
     scraped_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class CV(Base):
+    __tablename__ = "cvs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    filename: Mapped[str] = mapped_column(String(255))
+    file_path: Mapped[str] = mapped_column(String(500))
+    raw_text: Mapped[str] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(default=False)
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

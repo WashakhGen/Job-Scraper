@@ -1,10 +1,10 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 
-from backend.core.logging import log_main
 from backend.databases.session import AsyncSessionLocal
 from backend.databases.utils import save_jobs
 from backend.schema.scrape import ScrapeRequest, ScrapeResponse
 from backend.scrapers.registry import SCRAPERS
+from core.logging import log_main
 
 router = APIRouter(tags=["scrape"])
 

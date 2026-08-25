@@ -3,7 +3,7 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from backend.core.settings import SETTINGS
+from core.settings import SETTINGS
 
 
 def _clean_description(text: str, max_chars: int = 4000) -> str:
