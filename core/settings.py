@@ -9,7 +9,10 @@ class Settings(BaseSettings):
 
     # llm
     LLM_PROVIDER: str = "gemini"  # gemini | ollama
+
     GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = ""
+
     OLLAMA_API_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3"
 
