@@ -17,3 +17,8 @@ class JobRecommendation(BaseModel):
     missing: list[str]
     cover_letter: str | None
     scored_at: datetime
+    applied: bool
+
+
+class AppliedUpdate(BaseModel):
+    applied: bool
