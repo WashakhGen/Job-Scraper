@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  /* palette pulled from the Job Scraper logo */
+  --color-brand-teal: #0e4a5c;
+  --color-brand-teal-dark: #0a3644;
+  --color-brand-coral: #f2704a;
+  --color-brand-coral-dark: #d9552f;
+  --color-brand-bg: #eaf3fa;
+  --color-brand-surface: #ffffff;
+  --color-brand-border: #d7e6f0;
+  --color-brand-text: #0e2530;
+  --color-brand-muted: #5b7683;
+
+  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--color-brand-bg);
+  color: var(--color-brand-text);
+  font-family: var(--font-sans);
+}
