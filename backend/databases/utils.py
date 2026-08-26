@@ -3,8 +3,9 @@ from dataclasses import asdict
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.databases.models import JobPosting
+from backend.databases.models import AppSettings, JobPosting
 from backend.scrapers.base import RawJob
+from core.settings import SETTINGS
 
 
 async def save_jobs(db: AsyncSession, jobs: list[RawJob]) -> list[JobPosting]:
@@ -40,3 +41,13 @@ async def save_jobs(db: AsyncSession, jobs: list[RawJob]) -> list[JobPosting]:
 
     await db.commit()
     return new_jobs
+
+
+async def get_app_settings(db: AsyncSession) -> AppSettings:
+    settings_row = await db.get(AppSettings, 1)
+    if settings_row is None:
+        settings_row = AppSettings(id=1, min_score=SETTINGS.MIN_SCORE)
+        db.add(settings_row)
+        await db.commit()
+        await db.refresh(settings_row)
+    return settings_row

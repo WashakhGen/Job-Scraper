@@ -14,6 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.databases.session import Base
+from core.settings import SETTINGS
 
 
 class JobPosting(Base):
@@ -59,3 +60,10 @@ class MatchResult(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     matched: Mapped[list[str]] = mapped_column(JSON, default=list)
     missing: Mapped[list[str]] = mapped_column(JSON, default=list)
+    cover_letter: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class AppSettings(Base):
+    __tablename__ = "app_settings"
+    id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    min_score: Mapped[int] = mapped_column(Integer, default=SETTINGS.MIN_SCORE)

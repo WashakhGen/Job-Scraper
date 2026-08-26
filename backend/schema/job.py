@@ -16,3 +16,7 @@ class JobOut(BaseModel):
     description: str
     posted_at: str | None
     scraped_at: datetime
+
+
+class AppSettingsOut(BaseModel):
+    min_score: int
