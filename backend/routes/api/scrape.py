@@ -1,24 +1,16 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from typing import Annotated
 
-from backend.databases.session import AsyncSessionLocal
-from backend.databases.utils import save_jobs
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.databases.models import CV
+from backend.databases.session import get_db
+from backend.routes.background.scraper_service import _run_scrape
 from backend.schema.scrape import ScrapeRequest, ScrapeResponse
 from backend.scrapers.registry import SCRAPERS
-from core.logging import log_main
 
 router = APIRouter(tags=["scrape"])
-
-
-async def _run_scrape(
-    app_state, source: str, keywords: list[str], location: str | None, limit: int
-):
-    adapter_cls = SCRAPERS[source]
-    client = app_state.apify_client if adapter_cls.client_kind == "apify" else app_state.http_client
-    adapter = adapter_cls(client=client)  # pyright: ignore[reportCallIssue]  # ty: ignore[unknown-argument]
-    jobs = await adapter.fetch(keywords, location, limit)
-    async with AsyncSessionLocal() as session:
-        inserted = await save_jobs(session, jobs)
-    log_main(f"{source}: fetched {len(jobs)} jobs, {inserted} new")
 
 
 @router.post("/{source}", response_model=ScrapeResponse)
@@ -27,10 +19,34 @@ async def trigger_scrape(
     body: ScrapeRequest,
     request: Request,
     background_tasks: BackgroundTasks,
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    if source not in SCRAPERS:
-        raise HTTPException(404, f"Unknown source: {source}")
+    # 1. Validate source
+    adapter_cls = SCRAPERS.get(source)
+    if adapter_cls is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Unknown source: {source}",
+        )
+
+    # 2. Find active CV
+
+    active_cv = await db.scalar(select(CV).where(CV.is_active.is_(True)))
+    if active_cv is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No active CV",
+        )
+
+    # 3. Queue background job
+
     background_tasks.add_task(
-        _run_scrape, request.app.state, source, body.keywords, body.location, body.limit
+        _run_scrape,
+        request.app.state,
+        source,
+        active_cv.id,
+        body.location,
+        body.limit,
     )
+
     return ScrapeResponse(status="accepted", source=source)

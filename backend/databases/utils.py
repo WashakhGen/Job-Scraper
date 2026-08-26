@@ -7,9 +7,10 @@ from backend.databases.models import JobPosting
 from backend.scrapers.base import RawJob
 
 
-async def save_jobs(db: AsyncSession, jobs: list[RawJob]) -> int:
-    """Upsert scraped jobs by (source, external_id). Returns count of newly inserted rows."""
-    inserted = 0
+async def save_jobs(db: AsyncSession, jobs: list[RawJob]) -> list[JobPosting]:
+    """Upsert scraped jobs by (source, external_id). Returns newly inserted jobs."""
+    new_jobs: list[JobPosting] = []
+
     for job in jobs:
         existing = await db.scalar(
             select(JobPosting).where(
@@ -33,8 +34,9 @@ async def save_jobs(db: AsyncSession, jobs: list[RawJob]) -> int:
         if duplicate:
             continue  # same job already stored from another source
 
-        db.add(JobPosting(**asdict(job)))
-        inserted += 1
+        job_posting = JobPosting(**asdict(job))
+        db.add(job_posting)
+        new_jobs.append(job_posting)
 
     await db.commit()
-    return inserted
+    return new_jobs

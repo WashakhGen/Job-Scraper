@@ -1,6 +1,16 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.databases.session import Base
@@ -35,3 +45,17 @@ class CV(Base):
     keywords: Mapped[list[str]] = mapped_column(JSON, default=list)
     is_active: Mapped[bool] = mapped_column(default=False)
     uploaded_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class MatchResult(Base):
+    __tablename__ = "match_results"
+    __table_args__ = (UniqueConstraint("cv_id", "job_id", name="uq_cv_job_match"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    cv_id: Mapped[int] = mapped_column(Integer, ForeignKey("cvs.id"), index=True)
+    job_id: Mapped[int] = mapped_column(Integer, ForeignKey("job_postings.id"), index=True)
+    score: Mapped[float] = mapped_column(Float)
+    rationale: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    matched: Mapped[list[str]] = mapped_column(JSON, default=list)
+    missing: Mapped[list[str]] = mapped_column(JSON, default=list)

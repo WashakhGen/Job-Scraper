@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.databases.models import CV
 from backend.databases.session import get_db
 from backend.llm.keywords import extract_keywords
-from backend.schema.cv import CVOut
+from backend.schema.cv import CVKeywordsUpdate, CVOut
 from core.settings import SETTINGS
 
 router = APIRouter(tags=["cv"])
@@ -115,3 +115,16 @@ async def delete_cv(cv_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
             next_cv.is_active = True
 
     await db.commit()
+
+
+@router.put("/{cv_id}/keywords", response_model=CVOut)
+async def update_cv_keywords(
+    cv_id: int, body: CVKeywordsUpdate, db: Annotated[AsyncSession, Depends(get_db)]
+):
+    cv = await db.get(CV, cv_id)
+    if cv is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV not found")
+    cv.keywords = body.keywords
+    await db.commit()
+    await db.refresh(cv)
+    return cv

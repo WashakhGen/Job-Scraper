@@ -10,3 +10,7 @@ class CVOut(BaseModel):
     keywords: list[str]
     is_active: bool
     uploaded_at: datetime
+
+
+class CVKeywordsUpdate(BaseModel):
+    keywords: list[str]
