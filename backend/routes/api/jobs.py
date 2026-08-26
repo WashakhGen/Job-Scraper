@@ -9,7 +9,7 @@ from backend.databases.models import CV, JobPosting, MatchResult
 from backend.databases.session import get_db
 from backend.databases.utils import get_app_settings
 from backend.schema.job import AppSettingsOut, JobOut
-from backend.schema.match import AppliedUpdate, JobRecommendation
+from backend.schema.match import AppliedUpdate, JobDetail, JobRecommendation
 
 router = APIRouter(tags=["jobs"])
 
@@ -107,6 +107,41 @@ async def mark_applied(
     if job is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Job no longer exists")
     return _to_recommendation(job, match)
+
+
+@router.get("/detail/{job_id}", response_model=JobDetail)
+async def get_job_detail(
+    job_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cv_id: int | None = None,
+):
+    job = await db.get(JobPosting, job_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Job not found")
+
+    cv_id = await _resolve_cv_id(db, cv_id)
+    match = await db.scalar(
+        select(MatchResult).where(MatchResult.job_id == job_id, MatchResult.cv_id == cv_id)
+    )
+
+    return JobDetail(
+        job_id=job.id,
+        title=job.title,
+        company=job.company,
+        location=job.location,
+        url=job.url,
+        source=job.source,
+        description=job.description,
+        posted_at=job.posted_at,
+        scraped_at=job.scraped_at,
+        score=match.score if match else None,
+        rationale=match.rationale if match else None,
+        matched=match.matched if match else [],
+        missing=match.missing if match else [],
+        cover_letter=match.cover_letter if match else None,
+        applied=match.applied if match else False,
+        scored_at=match.created_at if match else None,
+    )
 
 
 @router.get("/settings", response_model=AppSettingsOut)
