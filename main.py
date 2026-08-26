@@ -32,8 +32,10 @@ app.include_router(scrape.router, prefix="/api/scrape")
 app.include_router(jobs.router, prefix="/api/jobs")
 app.include_router(cv.router, prefix="/api/cv")
 
+app.frontend("/", directory="frontend/dist", fallback="index.html")
 
-@app.get("/")
+
+@app.get("/health")
 def health():
     return {"status": "ok", "llm_provider": SETTINGS.LLM_PROVIDER}
 
