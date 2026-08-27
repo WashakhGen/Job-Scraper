@@ -1,0 +1,18 @@
+services:
+  backend:
+    build: .
+    container_name: job-scrapper
+    restart: unless-stopped
+    ports:
+      - "${UVICORN_PORT:-8888}:8888"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: sqlite:////app/data/jobscrapper.db
+      CV_UPLOAD_DIR: /app/data/media/cvs
+      LOG_DIR: /app/data/logs
+    volumes:
+      - job-scrapper-data:/app/data
+
+volumes:
+  job-scrapper-data:
