@@ -7,6 +7,7 @@ import uvicorn
 from apify_client import ApifyClientAsync
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
+from tzlocal import get_localzone_name
 
 from backend.databases.session import AsyncSessionLocal, engine, init_models
 from backend.databases.utils import get_schedule_config
@@ -27,8 +28,11 @@ async def lifespan(app: FastAPI):
     app.state.http_client = httpx.AsyncClient()
     app.state.scrape_state = ScrapeState()
     await init_models()
+    timezone = get_localzone_name()
+    log_main(f"Scheduler timezone: {timezone}")
 
-    scheduler = AsyncIOScheduler()
+    scheduler = AsyncIOScheduler(timezone=timezone)
+
     scheduler.start()
     app.state.scheduler = scheduler
     async with AsyncSessionLocal() as session:
