@@ -77,6 +77,8 @@ export const updateSettings = (minScore: number, locations: string[]) =>
   })
 
 // ── Scrape ──────────────────────────────────────────
+export const listSources = () => request<string[]>('/scrape/sources')
+
 export const triggerScrape = (source: string, location?: string, limit?: number) =>
   request<{ status: string; source: string }>(`/scrape/${source}`, {
     method: 'POST',
