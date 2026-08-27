@@ -59,3 +59,12 @@ export interface AppSettings {
   min_score: number
   locations: string[]
 }
+
+export interface CandidateProfile {
+  name: string
+  headline: string
+  location: string
+  phone: string
+  email: string
+  links: string[]
+}

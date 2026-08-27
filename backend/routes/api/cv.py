@@ -10,8 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.databases.models import CV
 from backend.databases.session import get_db
+from backend.databases.utils import get_candidate_profile
 from backend.llm.keywords import extract_keywords
-from backend.schema.cv import CVKeywordsUpdate, CVOut
+from backend.schema.cv import CandidateProfileOut, CVKeywordsUpdate, CVOut
 from core.settings import SETTINGS
 
 router = APIRouter(tags=["cv"])
@@ -128,3 +129,22 @@ async def update_cv_keywords(
     await db.commit()
     await db.refresh(cv)
     return cv
+
+
+@router.get("/profile", response_model=CandidateProfileOut)
+async def get_profile(db: Annotated[AsyncSession, Depends(get_db)]):
+    return await get_candidate_profile(db)
+
+
+@router.put("/profile", response_model=CandidateProfileOut)
+async def update_profile(body: CandidateProfileOut, db: Annotated[AsyncSession, Depends(get_db)]):
+    profile = await get_candidate_profile(db)
+    profile.name = body.name
+    profile.headline = body.headline
+    profile.location = body.location
+    profile.phone = body.phone
+    profile.email = body.email
+    profile.links = body.links
+    await db.commit()
+    await db.refresh(profile)
+    return profile

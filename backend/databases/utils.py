@@ -3,7 +3,7 @@ from dataclasses import asdict
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.databases.models import AppSettings, JobPosting
+from backend.databases.models import AppSettings, CandidateProfile, JobPosting
 from backend.scrapers.base import RawJob
 from core.settings import SETTINGS
 
@@ -51,3 +51,13 @@ async def get_app_settings(db: AsyncSession) -> AppSettings:
         await db.commit()
         await db.refresh(settings_row)
     return settings_row
+
+
+async def get_candidate_profile(db: AsyncSession) -> CandidateProfile:
+    profile = await db.get(CandidateProfile, 1)
+    if profile is None:
+        profile = CandidateProfile(id=1)
+        db.add(profile)
+        await db.commit()
+        await db.refresh(profile)
+    return profile

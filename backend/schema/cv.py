@@ -14,3 +14,13 @@ class CVOut(BaseModel):
 
 class CVKeywordsUpdate(BaseModel):
     keywords: list[str]
+
+
+class CandidateProfileOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    name: str
+    headline: str
+    location: str
+    phone: str
+    email: str
+    links: list[str]

@@ -1,15 +1,21 @@
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.databases.models import CV, JobPosting, MatchResult
 from backend.databases.session import get_db
-from backend.databases.utils import get_app_settings
+from backend.databases.utils import get_app_settings, get_candidate_profile
+from backend.llm.cover_letter import generate_cover_letter
+from backend.llm.scoring import score_match
+from backend.routes.api.cv import _get_or_create_markdown
 from backend.schema.job import AppSettingsOut, JobOut
 from backend.schema.match import AppliedUpdate, JobDetail, JobRecommendation
+from core.pdf import build_pdf, cover_letter_to_html
 
 router = APIRouter(tags=["jobs"])
 
@@ -30,6 +36,27 @@ def _to_recommendation(job: JobPosting, match: MatchResult) -> JobRecommendation
         cover_letter=match.cover_letter,
         scored_at=match.created_at,
         applied=match.applied,
+    )
+
+
+def _to_detail(job: JobPosting, match: MatchResult | None) -> JobDetail:
+    return JobDetail(
+        job_id=job.id,
+        title=job.title,
+        company=job.company,
+        location=job.location,
+        url=job.url,
+        source=job.source,
+        description=job.description,
+        posted_at=job.posted_at,
+        scraped_at=job.scraped_at,
+        score=match.score if match else None,
+        rationale=match.rationale if match else None,
+        matched=match.matched if match else [],
+        missing=match.missing if match else [],
+        cover_letter=match.cover_letter if match else None,
+        applied=match.applied if match else False,
+        scored_at=match.created_at if match else None,
     )
 
 
@@ -133,24 +160,93 @@ async def get_job_detail(
     match = await db.scalar(
         select(MatchResult).where(MatchResult.job_id == job_id, MatchResult.cv_id == cv_id)
     )
+    return _to_detail(job, match)
 
-    return JobDetail(
-        job_id=job.id,
-        title=job.title,
+
+@router.post("/{job_id}/cover-letter", response_model=JobDetail)
+async def generate_job_cover_letter(
+    job_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cv_id: int | None = None,
+):
+    """Generate (or regenerate) a cover letter for any job, scored or not.
+
+    If the job was never scored — e.g. it's outside the recommended threshold,
+    or scoring failed — score it first so the cover letter is grounded in real
+    matched/missing requirements instead of guessing from the raw description.
+    """
+    job = await db.get(JobPosting, job_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Job not found")
+
+    cv_id = await _resolve_cv_id(db, cv_id)
+    cv = await db.get(CV, cv_id)
+    if cv is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "CV not found")
+
+    cv_text = _get_or_create_markdown(Path(cv.file_path))
+
+    match = await db.scalar(
+        select(MatchResult).where(MatchResult.job_id == job_id, MatchResult.cv_id == cv_id)
+    )
+    if match is None:
+        result = await score_match(
+            cv_text=cv_text, job_title=job.title, job_description=job.description or ""
+        )
+        match = MatchResult(
+            cv_id=cv_id,
+            job_id=job_id,
+            score=result.score,
+            rationale=result.rationale,
+            matched=result.matched,
+            missing=result.missing,
+        )
+        db.add(match)
+
+    match.cover_letter = await generate_cover_letter(
+        cv_text=cv_text,
+        job_title=job.title,
         company=job.company,
-        location=job.location,
-        url=job.url,
-        source=job.source,
-        description=job.description,
-        posted_at=job.posted_at,
-        scraped_at=job.scraped_at,
-        score=match.score if match else None,
-        rationale=match.rationale if match else None,
-        matched=match.matched if match else [],
-        missing=match.missing if match else [],
-        cover_letter=match.cover_letter if match else None,
-        applied=match.applied if match else False,
-        scored_at=match.created_at if match else None,
+        matched=match.matched,
+        missing=match.missing,
+    )
+    await db.commit()
+    await db.refresh(match)
+    return _to_detail(job, match)
+
+
+@router.get("/{job_id}/cover-letter.pdf")
+async def download_cover_letter_pdf(
+    job_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cv_id: int | None = None,
+):
+    job = await db.get(JobPosting, job_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Job not found")
+
+    cv_id = await _resolve_cv_id(db, cv_id)
+    match = await db.scalar(
+        select(MatchResult).where(MatchResult.job_id == job_id, MatchResult.cv_id == cv_id)
+    )
+    if match is None or not match.cover_letter:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No cover letter generated yet for this job")
+
+    profile = await get_candidate_profile(db)
+    pdf_bytes = build_pdf(
+        cover_letter_to_html(match.cover_letter),
+        name=profile.name,
+        headline=profile.headline,
+        location=profile.location,
+        phone=profile.phone,
+        email=profile.email,
+        links=profile.links,
+    )
+    filename = f"Cover Letter - {job.company}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 

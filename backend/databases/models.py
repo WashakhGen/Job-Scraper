@@ -70,3 +70,18 @@ class AppSettings(Base):
     id: Mapped[int] = mapped_column(primary_key=True, default=1)
     min_score: Mapped[int] = mapped_column(Integer, default=SETTINGS.MIN_SCORE)
     locations: Mapped[list[str]] = mapped_column(JSON, default=list)
+
+
+class CandidateProfile(Base):
+    """Manually-entered identity info for the cover letter letterhead — kept
+    separate from LLM-extracted CV data on purpose, since a wrong digit in a
+    phone/email here is a real problem on something going to an employer."""
+
+    __tablename__ = "candidate_profile"
+    id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    name: Mapped[str] = mapped_column(String(255), default="")
+    headline: Mapped[str] = mapped_column(String(255), default="")
+    location: Mapped[str] = mapped_column(String(255), default="")
+    phone: Mapped[str] = mapped_column(String(50), default="")
+    email: Mapped[str] = mapped_column(String(255), default="")
+    links: Mapped[list[str]] = mapped_column(JSON, default=list)

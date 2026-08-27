@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { activateCv, deleteCv, updateCvKeywords, uploadCv } from '../api/client'
 import type { CV } from '../api/types'
+import CandidateProfileCard from './CandidateProfileCard'
 import SearchSettings from './SearchSettings'
 
 const MAX_CVS = 3
@@ -219,6 +220,7 @@ export default function Sidebar({ cvs, onChange }: Props) {
         ))}
 
       <SearchSettings />
+      <CandidateProfileCard />
     </aside>
   )
 }

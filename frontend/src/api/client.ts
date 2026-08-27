@@ -1,4 +1,4 @@
-import type { AppSettings, CV, JobDetail, JobOut, JobRecommendation } from './types'
+import type { AppSettings, CandidateProfile, CV, JobDetail, JobOut, JobRecommendation } from './types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -32,6 +32,14 @@ export const updateCvKeywords = (id: number, keywords: string[]) =>
     body: JSON.stringify({ keywords }),
   })
 
+export const getProfile = () => request<CandidateProfile>('/cv/profile')
+
+export const updateProfile = (profile: CandidateProfile) =>
+  request<CandidateProfile>('/cv/profile', {
+    method: 'PUT',
+    body: JSON.stringify(profile),
+  })
+
 // ── Jobs ────────────────────────────────────────────
 export const listJobs = () => request<JobOut[]>('/jobs')
 
@@ -49,6 +57,15 @@ export const setApplied = (jobId: number, applied: boolean) =>
     method: 'PUT',
     body: JSON.stringify({ applied }),
   })
+
+export const generateCoverLetter = (jobId: number, cvId?: number) =>
+  request<JobDetail>(`/jobs/${jobId}/cover-letter${cvId ? `?cv_id=${cvId}` : ''}`, {
+    method: 'POST',
+  })
+
+// server-rendered file, not fetched as JSON — used directly as a link href
+export const coverLetterPdfUrl = (jobId: number, cvId?: number) =>
+  `/api/jobs/${jobId}/cover-letter.pdf${cvId ? `?cv_id=${cvId}` : ''}`
 
 // ── Settings ────────────────────────────────────────
 export const getSettings = () => request<AppSettings>('/jobs/settings')

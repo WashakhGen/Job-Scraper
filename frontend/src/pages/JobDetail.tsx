@@ -1,8 +1,7 @@
-import jsPDF from 'jspdf'
 import { useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getJobDetail, setApplied } from '../api/client'
+import { coverLetterPdfUrl, generateCoverLetter, getJobDetail, setApplied } from '../api/client'
 import type { JobDetail as JobDetailType } from '../api/types'
 import { matchLabel, timeAgo } from '../lib/format'
 import ScoreRing from '../components/ScoreRing'
@@ -25,6 +24,7 @@ export default function JobDetail() {
   const [error, setError] = useState<string | null>(null)
   const [marking, setMarking] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [generating, setGenerating] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -52,19 +52,15 @@ export default function JobDetail() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  function downloadCoverLetterPdf() {
-    if (!job?.cover_letter) return
-    // jsPDF renders plain text, no markdown support — strip ** bold markers
-    // and turn * bullets into a plain-text bullet char instead
-    const plainText = job.cover_letter
-      .replace(/\*\*(.*?)\*\*/g, '$1')
-      .replace(/^\*\s+/gm, '• ')
-
-    const doc = new jsPDF()
-    const lines = doc.splitTextToSize(plainText, 180)
-    doc.setFontSize(11)
-    doc.text(lines, 15, 20)
-    doc.save(`Cover Letter - ${job.company}.pdf`)
+  async function handleGenerateCoverLetter() {
+    if (!job) return
+    setGenerating(true)
+    try {
+      const updated = await generateCoverLetter(job.job_id)
+      setJob(updated)
+    } finally {
+      setGenerating(false)
+    }
   }
 
   if (error) {
@@ -100,7 +96,7 @@ export default function JobDetail() {
             </div>
           </div>
 
-          {job.cover_letter && (
+          {job.cover_letter ? (
             <div className="rounded-xl border border-brand-coral bg-orange-50 p-5">
               <div className="flex items-center justify-between">
                 <h2 className="font-semibold text-brand-text">Cover Letter</h2>
@@ -115,12 +111,26 @@ export default function JobDetail() {
               <div className="mt-3 text-sm leading-relaxed text-brand-text">
                 <ReactMarkdown components={markdownComponents}>{job.cover_letter}</ReactMarkdown>
               </div>
-              <button
-                type="button"
-                onClick={downloadCoverLetterPdf}
-                className="mt-4 rounded-full border border-brand-coral px-3 py-1.5 text-xs font-semibold text-brand-coral transition hover:bg-brand-coral hover:text-white"
+              <a
+                href={coverLetterPdfUrl(job.job_id)}
+                className="mt-4 inline-block rounded-full border border-brand-coral px-3 py-1.5 text-xs font-semibold text-brand-coral transition hover:bg-brand-coral hover:text-white"
               >
                 Download PDF
+              </a>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-brand-border bg-brand-surface p-5 text-center">
+              <p className="text-sm text-brand-muted">
+                No cover letter yet — this job wasn't recommended, so one wasn't generated
+                automatically.
+              </p>
+              <button
+                type="button"
+                onClick={handleGenerateCoverLetter}
+                disabled={generating}
+                className="mt-3 rounded-full bg-brand-coral px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-coral-dark disabled:opacity-50"
+              >
+                {generating ? 'Generating…' : 'Generate Cover Letter'}
               </button>
             </div>
           )}
