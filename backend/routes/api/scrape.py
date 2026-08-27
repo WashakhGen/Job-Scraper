@@ -6,8 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.databases.models import CV
 from backend.databases.session import get_db
-from backend.routes.background.scraper_service import _run_scrape, _run_scrape_all
-from backend.schema.scrape import ScrapeRequest, ScrapeResponse
+from backend.routes.background.scraper_service import (
+    run_scrape_all_and_finish,
+    run_scrape_and_finish,
+)
+from backend.schema.scrape import ScrapeRequest, ScrapeResponse, ScrapeStatus
 from backend.scrapers.registry import SCRAPERS
 
 router = APIRouter(tags=["scrape"])
@@ -16,6 +19,11 @@ router = APIRouter(tags=["scrape"])
 @router.get("/sources")
 async def list_sources() -> list[str]:
     return sorted(SCRAPERS.keys())
+
+
+@router.get("/status", response_model=ScrapeStatus)
+async def get_scrape_status(request: Request):
+    return ScrapeStatus(running=request.app.state.scrape_state.running)
 
 
 @router.post("/all", response_model=ScrapeResponse)
@@ -28,8 +36,12 @@ async def trigger_scrape_all(
     active_cv = await db.scalar(select(CV).where(CV.is_active.is_(True)))
     if active_cv is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No active CV")
+
+    if not request.app.state.scrape_state.try_start():
+        raise HTTPException(status.HTTP_409_CONFLICT, "A scrape is already running")
+
     background_tasks.add_task(
-        _run_scrape_all, request.app.state, active_cv.id, body.location, body.limit
+        run_scrape_all_and_finish, request.app.state, active_cv.id, body.location, body.limit
     )
     return ScrapeResponse(status="accepted", source="all")
 
@@ -59,10 +71,15 @@ async def trigger_scrape(
             detail="No active CV",
         )
 
-    # 3. Queue background job
+    # 3. Reserve the shared scrape slot
+
+    if not request.app.state.scrape_state.try_start():
+        raise HTTPException(status.HTTP_409_CONFLICT, "A scrape is already running")
+
+    # 4. Queue background job
 
     background_tasks.add_task(
-        _run_scrape,
+        run_scrape_and_finish,
         request.app.state,
         source,
         active_cv.id,

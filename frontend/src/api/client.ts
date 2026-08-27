@@ -1,4 +1,12 @@
-import type { AppSettings, CandidateProfile, CV, JobDetail, JobOut, JobRecommendation } from './types'
+import type {
+  AppSettings,
+  CandidateProfile,
+  CV,
+  JobDetail,
+  JobOut,
+  JobRecommendation,
+  ScheduleConfig,
+} from './types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -76,8 +84,19 @@ export const updateSettings = (minScore: number, locations: string[]) =>
     body: JSON.stringify({ min_score: minScore, locations }),
   })
 
+// ── Schedule ────────────────────────────────────────
+export const getSchedule = () => request<ScheduleConfig>('/schedule')
+
+export const updateSchedule = (config: Omit<ScheduleConfig, 'last_run_at' | 'next_run_at'>) =>
+  request<ScheduleConfig>('/schedule', {
+    method: 'PUT',
+    body: JSON.stringify(config),
+  })
+
 // ── Scrape ──────────────────────────────────────────
 export const listSources = () => request<string[]>('/scrape/sources')
+
+export const getScrapeStatus = () => request<{ running: boolean }>('/scrape/status')
 
 export const triggerScrape = (source: string, location?: string, limit?: number) =>
   request<{ status: string; source: string }>(`/scrape/${source}`, {

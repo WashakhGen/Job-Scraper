@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 import logo from './assets/logo.png'
-import { listCvs } from './api/client'
-import type { CV } from './api/types'
+import { getSchedule, getScrapeStatus, listCvs } from './api/client'
+import type { CV, ScheduleConfig } from './api/types'
 import CvUploadGate from './components/CvUploadGate'
+import ScheduleModal from './components/ScheduleModal'
 import ScrapeModal from './components/ScrapeModal'
 import Sidebar from './components/Sidebar'
 import Applied from './pages/Applied'
@@ -20,12 +21,30 @@ export default function App() {
   const [cvs, setCvs] = useState<CV[] | null>(null)
   const [scrapeModalOpen, setScrapeModalOpen] = useState(false)
   const [scrapeMessage, setScrapeMessage] = useState<string | null>(null)
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
+  const [schedule, setSchedule] = useState<ScheduleConfig | null>(null)
+  const [scrapeRunning, setScrapeRunning] = useState(false)
 
   useEffect(() => {
     listCvs().then(setCvs).catch(() => setCvs([]))
+    getSchedule()
+      .then(setSchedule)
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    function poll() {
+      getScrapeStatus()
+        .then((s) => setScrapeRunning(s.running))
+        .catch(() => {})
+    }
+    poll()
+    const interval = setInterval(poll, 4000)
+    return () => clearInterval(interval)
   }, [])
 
   function handleScrapeStarted() {
+    setScrapeRunning(true)
     setScrapeMessage('Scrape started — check back in a bit')
     setTimeout(() => setScrapeMessage(null), 4000)
   }
@@ -61,10 +80,25 @@ export default function App() {
             {scrapeMessage && <span className="text-xs text-brand-muted">{scrapeMessage}</span>}
             <button
               type="button"
-              onClick={() => setScrapeModalOpen(true)}
-              className="rounded-md bg-brand-coral px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-coral-dark"
+              onClick={() => setScheduleModalOpen(true)}
+              title={schedule?.enabled ? 'Scheduled scrape is active' : 'Scheduled scrape is inactive'}
+              className="relative rounded-md border border-brand-border px-4 py-2 text-sm font-semibold text-brand-teal transition hover:border-brand-teal hover:bg-brand-bg"
             >
-              Scrape Now
+              Schedule
+              <span
+                className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-brand-surface ${
+                  schedule?.enabled ? 'bg-green-500' : 'bg-brand-border'
+                }`}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={() => setScrapeModalOpen(true)}
+              disabled={scrapeRunning}
+              title={scrapeRunning ? 'A scrape is already running' : undefined}
+              className="rounded-md bg-brand-coral px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-coral-dark disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-brand-coral"
+            >
+              {scrapeRunning ? 'Scrape Running…' : 'Fetch Jobs Now'}
             </button>
           </div>
         </header>
@@ -81,6 +115,10 @@ export default function App() {
 
       {scrapeModalOpen && (
         <ScrapeModal onClose={() => setScrapeModalOpen(false)} onStarted={handleScrapeStarted} />
+      )}
+
+      {scheduleModalOpen && (
+        <ScheduleModal onClose={() => setScheduleModalOpen(false)} onSaved={setSchedule} />
       )}
     </div>
   )

@@ -60,6 +60,20 @@ export interface AppSettings {
   locations: string[]
 }
 
+export type ScheduleFrequency = 'daily' | 'weekly' | 'monthly'
+
+export interface ScheduleConfig {
+  enabled: boolean
+  frequency: ScheduleFrequency
+  hour: number
+  minute: number
+  day_of_week: number | null // 0=Mon..6=Sun, weekly only
+  day_of_month: number | null // 1-28, monthly only
+  limit: number
+  last_run_at: string | null
+  next_run_at: string | null
+}
+
 export interface CandidateProfile {
   name: string
   headline: string

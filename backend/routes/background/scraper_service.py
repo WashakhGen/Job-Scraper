@@ -15,6 +15,27 @@ async def _run_scrape_all(app_state, cv_id: int, location: str | None, limit: in
         await _run_scrape(app_state, source, cv_id, location, limit)
 
 
+async def run_scrape_and_finish(
+    app_state, source: str, cv_id: int, location: str | None, limit: int
+) -> None:
+    """Wraps a single-source scrape and always releases the shared scrape
+    lock (app_state.scrape_state) when done, success or failure."""
+    try:
+        await _run_scrape(app_state, source, cv_id, location, limit)
+    finally:
+        app_state.scrape_state.finish()
+
+
+async def run_scrape_all_and_finish(
+    app_state, cv_id: int, location: str | None, limit: int
+) -> None:
+    """Same as run_scrape_and_finish but for the 'all sources' trigger."""
+    try:
+        await _run_scrape_all(app_state, cv_id, location, limit)
+    finally:
+        app_state.scrape_state.finish()
+
+
 async def _run_scrape(
     app_state,
     source: str,

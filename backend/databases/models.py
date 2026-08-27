@@ -72,6 +72,22 @@ class AppSettings(Base):
     locations: Mapped[list[str]] = mapped_column(JSON, default=list)
 
 
+class ScheduleConfig(Base):
+    """Singleton row (id=1) driving the background APScheduler job — mirrors
+    AppSettings' single-row pattern."""
+
+    __tablename__ = "schedule_config"
+    id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    enabled: Mapped[bool] = mapped_column(default=False)
+    frequency: Mapped[str] = mapped_column(String(20), default="daily")  # daily | weekly | monthly
+    hour: Mapped[int] = mapped_column(Integer, default=2)
+    minute: Mapped[int] = mapped_column(Integer, default=0)
+    day_of_week: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 0=Mon..6=Sun
+    day_of_month: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 1-28
+    limit: Mapped[int] = mapped_column(Integer, default=SETTINGS.APIFY_RESULT_LIMIT)
+    last_run_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
 class CandidateProfile(Base):
     """Manually-entered identity info for the cover letter letterhead — kept
     separate from LLM-extracted CV data on purpose, since a wrong digit in a

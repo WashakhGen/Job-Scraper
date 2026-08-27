@@ -11,3 +11,7 @@ class ScrapeRequest(BaseModel):
 class ScrapeResponse(BaseModel):
     status: str
     source: str
+
+
+class ScrapeStatus(BaseModel):
+    running: bool
