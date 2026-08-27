@@ -52,8 +52,8 @@ class GlassDoorScraper(ScraperAdapter):
                     source=self.name,
                     external_id=str(item["id"]),
                     title=item["title"],
-                    company=item.get("employer", {}).get("name", ""),
-                    location=item.get("location", {}).get("name")
+                    company=(item.get("employer") or {}).get("name", ""),
+                    location=(item.get("location") or {}).get("name")
                     or ("Remote" if is_remote else ""),
                     url=item["url"],
                     description=item.get("description", ""),

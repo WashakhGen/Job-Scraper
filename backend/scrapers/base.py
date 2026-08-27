@@ -25,7 +25,12 @@ class RawJob:
     posted_at: str | None
 
     def __post_init__(self):
-        self.description = _clean_description(self.description)
+        self.external_id = str(self.external_id or "")
+        self.title = (self.title or "").strip()
+        self.company = (self.company or "").strip()
+        self.location = (self.location or "").strip()
+        self.url = self.url or ""
+        self.description = _clean_description(self.description or "")
 
 
 class ScraperAdapter(ABC):

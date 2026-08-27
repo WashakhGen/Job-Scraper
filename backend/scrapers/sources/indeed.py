@@ -44,10 +44,10 @@ class IndeedScraper(ScraperAdapter):
                     source=self.name,
                     external_id=item["key"],
                     title=item["title"],
-                    company=item.get("employer", {}).get("name", ""),
-                    location=item.get("location", {}).get("city", ""),
+                    company=(item.get("employer") or {}).get("name", ""),
+                    location=(item.get("location") or {}).get("city", ""),
                     url=item["url"],
-                    description=item.get("description", {}).get("text", ""),
+                    description=(item.get("description") or {}).get("text", ""),
                     posted_at=item.get("datePublished"),
                 )
                 seen[job.external_id] = job  # dedupe across keyword calls
