@@ -57,4 +57,5 @@ export interface JobDetail {
 
 export interface AppSettings {
   min_score: number
+  locations: string[]
 }

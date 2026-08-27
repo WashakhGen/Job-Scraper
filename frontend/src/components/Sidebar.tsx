@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { activateCv, deleteCv, updateCvKeywords, uploadCv } from '../api/client'
 import type { CV } from '../api/types'
+import SearchSettings from './SearchSettings'
 
 const MAX_CVS = 3
 
@@ -10,11 +11,18 @@ interface Props {
 }
 
 export default function Sidebar({ cvs, onChange }: Props) {
+  const [expandedId, setExpandedId] = useState<number | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [draftKeywords, setDraftKeywords] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (expandedId === null && cvs.length > 0) {
+      setExpandedId(cvs.find((cv) => cv.is_active)?.id ?? cvs[0].id)
+    }
+  }, [cvs, expandedId])
 
   async function refreshAfter<T>(action: () => Promise<T>) {
     setBusy(true)
@@ -32,6 +40,7 @@ export default function Sidebar({ cvs, onChange }: Props) {
     await refreshAfter(async () => {
       const cv = await uploadCv(file)
       onChange([cv, ...cvs])
+      setExpandedId(cv.id)
     })
   }
 
@@ -46,6 +55,7 @@ export default function Sidebar({ cvs, onChange }: Props) {
     await refreshAfter(async () => {
       await deleteCv(id)
       onChange(cvs.filter((cv) => cv.id !== id))
+      if (expandedId === id) setExpandedId(null)
     })
   }
 
@@ -95,15 +105,33 @@ export default function Sidebar({ cvs, onChange }: Props) {
 
       {error && <p className="text-xs text-red-600">{error}</p>}
 
-      <div className="flex flex-col gap-3">
+      {/* compact tab row — click to expand that CV's full card below */}
+      <div className="flex flex-wrap gap-1.5">
         {cvs.map((cv) => (
+          <button
+            key={cv.id}
+            type="button"
+            onClick={() => setExpandedId(expandedId === cv.id ? null : cv.id)}
+            title={cv.filename}
+            className={`max-w-[9rem] truncate rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+              expandedId === cv.id
+                ? 'border-brand-coral bg-orange-50 text-brand-coral'
+                : 'border-brand-border text-brand-muted hover:border-brand-teal hover:text-brand-teal'
+            }`}
+          >
+            {cv.is_active && '● '}
+            {cv.filename}
+          </button>
+        ))}
+      </div>
+
+      {cvs
+        .filter((cv) => cv.id === expandedId)
+        .map((cv) => (
           <div
             key={cv.id}
-            onClick={() => !cv.is_active && !busy && handleActivate(cv.id)}
-            className={`rounded-lg border p-3 text-sm transition ${
-              cv.is_active
-                ? 'border-brand-coral bg-orange-50'
-                : 'cursor-pointer border-brand-border bg-white hover:border-brand-teal hover:shadow-sm'
+            className={`rounded-lg border p-3 text-sm ${
+              cv.is_active ? 'border-brand-coral bg-orange-50' : 'border-brand-border bg-white'
             }`}
           >
             <div className="flex items-center justify-between gap-2">
@@ -118,7 +146,7 @@ export default function Sidebar({ cvs, onChange }: Props) {
             </div>
 
             {editingId === cv.id ? (
-              <div className="mt-2 flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+              <div className="mt-2 flex flex-col gap-2">
                 <textarea
                   value={draftKeywords}
                   onChange={(e) => setDraftKeywords(e.target.value)}
@@ -158,13 +186,20 @@ export default function Sidebar({ cvs, onChange }: Props) {
             )}
 
             <div className="mt-3 flex gap-3 text-xs">
+              {!cv.is_active && (
+                <button
+                  type="button"
+                  onClick={() => handleActivate(cv.id)}
+                  disabled={busy}
+                  className="font-medium text-brand-teal hover:underline"
+                >
+                  Activate
+                </button>
+              )}
               {editingId !== cv.id && (
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    startEditing(cv)
-                  }}
+                  onClick={() => startEditing(cv)}
                   disabled={busy}
                   className="font-medium text-brand-teal hover:underline"
                 >
@@ -173,10 +208,7 @@ export default function Sidebar({ cvs, onChange }: Props) {
               )}
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleDelete(cv.id)
-                }}
+                onClick={() => handleDelete(cv.id)}
                 disabled={busy}
                 className="font-medium text-red-600 hover:underline"
               >
@@ -185,7 +217,8 @@ export default function Sidebar({ cvs, onChange }: Props) {
             </div>
           </div>
         ))}
-      </div>
+
+      <SearchSettings />
     </aside>
   )
 }

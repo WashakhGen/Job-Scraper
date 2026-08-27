@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 import logo from './assets/logo.png'
-import { listCvs } from './api/client'
+import { getSettings, listCvs, triggerScrapeAll } from './api/client'
 import type { CV } from './api/types'
 import CvUploadGate from './components/CvUploadGate'
 import Sidebar from './components/Sidebar'
@@ -17,10 +17,34 @@ const tabClass = ({ isActive }: { isActive: boolean }) =>
 
 export default function App() {
   const [cvs, setCvs] = useState<CV[] | null>(null)
+  const [scraping, setScraping] = useState(false)
+  const [scrapeMessage, setScrapeMessage] = useState<string | null>(null)
 
   useEffect(() => {
     listCvs().then(setCvs).catch(() => setCvs([]))
   }, [])
+
+  async function handleScrape() {
+    setScraping(true)
+    setScrapeMessage(null)
+    try {
+      // fire-and-forget — the actual scraping runs as a background task and
+      // can take minutes per source, this just confirms it started. Loop
+      // client-side over every saved location (e.g. "Islamabad" + "Remote")
+      // since one scrape trigger only covers a single location server-side.
+      const settings = await getSettings()
+      const locations = settings.locations.length > 0 ? settings.locations : [undefined]
+      for (const location of locations) {
+        await triggerScrapeAll(location)
+      }
+      setScrapeMessage('Scrape started — check back in a bit')
+    } catch (err) {
+      setScrapeMessage(err instanceof Error ? err.message : 'Failed to start scrape')
+    } finally {
+      setScraping(false)
+      setTimeout(() => setScrapeMessage(null), 4000)
+    }
+  }
 
   if (cvs === null) {
     return <div className="flex min-h-screen items-center justify-center text-brand-muted">Loading…</div>
@@ -48,6 +72,18 @@ export default function App() {
               Applied
             </NavLink>
           </nav>
+
+          <div className="flex justify-self-end items-center gap-3">
+            {scrapeMessage && <span className="text-xs text-brand-muted">{scrapeMessage}</span>}
+            <button
+              type="button"
+              onClick={handleScrape}
+              disabled={scraping}
+              className="rounded-md bg-brand-coral px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-coral-dark disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {scraping ? 'Starting…' : 'Scrape Now'}
+            </button>
+          </div>
         </header>
 
         <main>

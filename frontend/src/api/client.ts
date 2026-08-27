@@ -53,10 +53,10 @@ export const setApplied = (jobId: number, applied: boolean) =>
 // ── Settings ────────────────────────────────────────
 export const getSettings = () => request<AppSettings>('/jobs/settings')
 
-export const updateSettings = (minScore: number) =>
+export const updateSettings = (minScore: number, locations: string[]) =>
   request<AppSettings>('/jobs/settings', {
     method: 'PUT',
-    body: JSON.stringify({ min_score: minScore }),
+    body: JSON.stringify({ min_score: minScore, locations }),
   })
 
 // ── Scrape ──────────────────────────────────────────
