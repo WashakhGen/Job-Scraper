@@ -3,6 +3,7 @@ import { activateCv, deleteCv, updateCvKeywords, uploadCv } from '../api/client'
 import type { CV } from '../api/types'
 import CandidateProfileCard from './CandidateProfileCard'
 import SearchSettings from './SearchSettings'
+import StepLoader from './StepLoader'
 
 const MAX_CVS = 3
 
@@ -16,6 +17,7 @@ export default function Sidebar({ cvs, onChange }: Props) {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [draftKeywords, setDraftKeywords] = useState('')
   const [busy, setBusy] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -38,11 +40,16 @@ export default function Sidebar({ cvs, onChange }: Props) {
   }
 
   async function handleUpload(file: File) {
-    await refreshAfter(async () => {
-      const cv = await uploadCv(file)
-      onChange([cv, ...cvs])
-      setExpandedId(cv.id)
-    })
+    setUploading(true)
+    try {
+      await refreshAfter(async () => {
+        const cv = await uploadCv(file)
+        onChange([cv, ...cvs])
+        setExpandedId(cv.id)
+      })
+    } finally {
+      setUploading(false)
+    }
   }
 
   async function handleActivate(id: number) {
@@ -88,9 +95,9 @@ export default function Sidebar({ cvs, onChange }: Props) {
           disabled={busy || cvs.length >= MAX_CVS}
           onClick={() => inputRef.current?.click()}
           title={cvs.length >= MAX_CVS ? `Max ${MAX_CVS} CVs — delete one first` : 'Upload CV'}
-          className="rounded-md bg-brand-coral px-2 py-1 text-xs font-semibold text-white transition hover:bg-brand-coral-dark disabled:cursor-not-allowed disabled:opacity-40"
+          className="shrink-0 whitespace-nowrap rounded-md bg-brand-coral px-2 py-1 text-xs font-semibold text-white transition hover:bg-brand-coral-dark disabled:cursor-not-allowed disabled:opacity-40"
         >
-          + Add
+          {uploading ? <StepLoader steps={['Uploading…', 'Analyzing…']} active={uploading} /> : '+ Add'}
         </button>
         <input
           ref={inputRef}

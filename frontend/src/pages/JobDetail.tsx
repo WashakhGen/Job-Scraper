@@ -5,6 +5,7 @@ import { coverLetterPdfUrl, generateCoverLetter, getJobDetail, setApplied } from
 import type { JobDetail as JobDetailType } from '../api/types'
 import { matchLabel, timeAgo } from '../lib/format'
 import ScoreRing from '../components/ScoreRing'
+import StepLoader from '../components/StepLoader'
 
 const markdownComponents = {
   p: ({ children }: { children?: React.ReactNode }) => <p className="mb-3 last:mb-0">{children}</p>,
@@ -128,9 +129,13 @@ export default function JobDetail() {
                 type="button"
                 onClick={handleGenerateCoverLetter}
                 disabled={generating}
-                className="mt-3 rounded-full bg-brand-coral px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-coral-dark disabled:opacity-50"
+                className="mt-3 inline-flex items-center justify-center rounded-full bg-brand-coral px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-coral-dark disabled:opacity-50"
               >
-                {generating ? 'Generating…' : 'Generate Cover Letter'}
+                {generating ? (
+                  <StepLoader steps={['Reviewing match…', 'Writing cover letter…']} active={generating} />
+                ) : (
+                  'Generate Cover Letter'
+                )}
               </button>
             </div>
           )}

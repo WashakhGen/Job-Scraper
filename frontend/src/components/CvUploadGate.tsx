@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { uploadCv } from '../api/client'
 import type { CV } from '../api/types'
+import StepLoader from './StepLoader'
 
 export default function CvUploadGate({ onUploaded }: { onUploaded: (cv: CV) => void }) {
   const [uploading, setUploading] = useState(false)
@@ -32,9 +33,13 @@ export default function CvUploadGate({ onUploaded }: { onUploaded: (cv: CV) => v
           type="button"
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
-          className="mt-6 w-full rounded-lg bg-brand-coral px-4 py-3 font-semibold text-white transition hover:bg-brand-coral-dark disabled:opacity-60"
+          className="mt-6 flex w-full items-center justify-center rounded-lg bg-brand-coral px-4 py-3 font-semibold text-white transition hover:bg-brand-coral-dark disabled:opacity-60"
         >
-          {uploading ? 'Uploading…' : 'Upload CV (PDF)'}
+          {uploading ? (
+            <StepLoader steps={['Uploading CV…', 'Analyzing CV…']} active={uploading} />
+          ) : (
+            'Upload CV (PDF)'
+          )}
         </button>
         <input
           ref={inputRef}
