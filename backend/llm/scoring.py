@@ -13,6 +13,11 @@ _SCORE_CONCURRENCY = 5
 
 class MatchResultSchema(BaseModel):
     score: int = Field(description="0-100 match score, following the rubric exactly")
+    location_match: bool = Field(
+        description="true only if the job is genuinely reachable for the candidate — "
+        "on-site/hybrid in one of their target locations, or remote without a region "
+        "restriction that excludes them"
+    )
     rationale: str = Field(
         description="one or two sentences explaining the score, citing specific matches and gaps"
     )
@@ -44,25 +49,52 @@ Scoring rules:
   shows, cap the score in the 60-74 band or below, even if skills overlap.
 - Be consistent and calibrated — the same CV/job should always get the same score.
 - List the specific requirements the CV satisfies (matched) and those it doesn't
-  (missing)."""
+  (missing).
+
+Location rules:
+- location_match is true only if the job is on-site/hybrid in one of the candidate's
+  target locations/country, or genuinely remote-eligible for someone based there.
+- Read the location text carefully — "Remote" alone is not enough if it's qualified
+  with a region/country restriction that excludes the candidate (e.g. "Remote (US
+  only)", "Remote — Americas, Europe, Israel"). Those are location_match: false.
+- If location_match is false, the overall score MUST be 19 or below regardless of how
+  well the skills match — a job the candidate cannot actually take is not a match."""
 
 
-async def score_match(cv_text: str, job_title: str, job_description: str) -> MatchResultSchema:
-
+async def score_match(
+    cv_text: str,
+    job_title: str,
+    job_description: str,
+    job_location: str,
+    target_locations: list[str],
+) -> MatchResultSchema:
     llm = get_llm().with_structured_output(MatchResultSchema)
+    location_context = (
+        f"Candidate's target locations: {', '.join(target_locations)}"
+        if target_locations
+        else "Candidate has not specified target locations — do not penalize location, "
+        "set location_match to true."
+    )
     result = await llm.ainvoke(
         [
             SystemMessage(content=_RUBRIC),
             HumanMessage(
                 content=(
+                    f"{location_context}\n\n"
                     f"CV:\n{cv_text}\n\n"
-                    f"Job title: {job_title}\n\n"
+                    f"Job title: {job_title}\n"
+                    f"Job location: {job_location}\n\n"
                     f"Job description:\n{job_description}"
                 )
             ),
         ]
     )
     assert isinstance(result, MatchResultSchema)
+
+    # don't just trust the LLM followed the cap instruction — enforce it in code too
+    if target_locations and not result.location_match:
+        result.score = min(result.score, 19)
+
     return result
 
 
@@ -70,6 +102,7 @@ async def _score_job(
     semaphore: asyncio.Semaphore,
     cv_text: str,
     job: JobPosting,
+    target_locations: list[str],
 ) -> tuple[JobPosting, MatchResultSchema | None]:
     """
     Score one job while respecting the concurrency limit.
@@ -84,6 +117,8 @@ async def _score_job(
                 cv_text=cv_text,
                 job_title=job.title,
                 job_description=job.description or "",
+                job_location=job.location or "",
+                target_locations=target_locations,
             )
 
             return job, result
@@ -97,6 +132,7 @@ async def _score_job(
 async def score_jobs(
     cv_text: str,
     jobs: Sequence[JobPosting],
+    target_locations: list[str],
 ) -> list[tuple[JobPosting, MatchResultSchema]]:
     """
     Score multiple jobs concurrently with a bounded concurrency limit.
@@ -113,6 +149,7 @@ async def score_jobs(
                 semaphore=semaphore,
                 cv_text=cv_text,
                 job=job,
+                target_locations=target_locations,
             )
             for job in jobs
         ]

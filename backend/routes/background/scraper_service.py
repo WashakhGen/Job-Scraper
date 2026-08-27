@@ -72,6 +72,9 @@ async def _run_scrape_internal(
     log_main("Getting Data from CV")
     cv_text = _get_or_create_markdown(Path(active_cv.file_path))
 
+    async with AsyncSessionLocal() as session:
+        app_settings = await get_app_settings(session)
+
     # 3. Create scraper adapter
 
     adapter_cls = SCRAPERS[source]
@@ -105,6 +108,7 @@ async def _run_scrape_internal(
     match_results = await score_jobs(
         cv_text=cv_text,
         jobs=new_jobs,
+        target_locations=app_settings.locations,
     )
 
     log_main(f"{source}: {len(match_results)}/{len(new_jobs)} jobs scored")
@@ -115,8 +119,6 @@ async def _run_scrape_internal(
     # 7. Save match results
     log_main("Saving Matched Jobs")
     async with AsyncSessionLocal() as session:
-        app_settings = await get_app_settings(session)
-
         for job, match_data in match_results:
             cover_letter = None
             if match_data.score >= app_settings.min_score:

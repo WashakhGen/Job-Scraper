@@ -190,8 +190,13 @@ async def generate_job_cover_letter(
         select(MatchResult).where(MatchResult.job_id == job_id, MatchResult.cv_id == cv_id)
     )
     if match is None:
+        app_settings = await get_app_settings(db)
         result = await score_match(
-            cv_text=cv_text, job_title=job.title, job_description=job.description or ""
+            cv_text=cv_text,
+            job_title=job.title,
+            job_description=job.description or "",
+            job_location=job.location or "",
+            target_locations=app_settings.locations,
         )
         match = MatchResult(
             cv_id=cv_id,
