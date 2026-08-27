@@ -15,3 +15,17 @@ logs
 scripts/*
 *.db
 media
+
+
+.claude/
+.agents/
+.github/skills/
+.github/agents/
+.github/hooks/
+skills-lock.json
+hooks.json
+# AI agent tooling
+.claude/
+.agents/
+skills-lock.json
+hooks.json

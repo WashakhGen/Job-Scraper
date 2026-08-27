@@ -20,3 +20,4 @@ class JobOut(BaseModel):
 
 class AppSettingsOut(BaseModel):
     min_score: int
+    locations: list[str]

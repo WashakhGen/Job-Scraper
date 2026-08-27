@@ -69,3 +69,4 @@ class AppSettings(Base):
     __tablename__ = "app_settings"
     id: Mapped[int] = mapped_column(primary_key=True, default=1)
     min_score: Mapped[int] = mapped_column(Integer, default=SETTINGS.MIN_SCORE)
+    locations: Mapped[list[str]] = mapped_column(JSON, default=list)

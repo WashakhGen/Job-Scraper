@@ -91,21 +91,31 @@ async def mark_applied(
     db: Annotated[AsyncSession, Depends(get_db)],
     cv_id: int | None = None,
 ):
+    job = await db.get(JobPosting, job_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Job not found")
+
     cv_id = await _resolve_cv_id(db, cv_id)
     match = await db.scalar(
         select(MatchResult).where(MatchResult.job_id == job_id, MatchResult.cv_id == cv_id)
     )
     if match is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No match result for this job/CV")
+        # unscored job (never went through the LLM pipeline, or scoring failed) —
+        # applying manually shouldn't be blocked on that, create a placeholder match
+        match = MatchResult(
+            cv_id=cv_id,
+            job_id=job_id,
+            score=0,
+            rationale="Marked applied manually — not scored by the pipeline.",
+            matched=[],
+            missing=[],
+        )
+        db.add(match)
 
     match.applied = body.applied
     match.applied_at = datetime.now(UTC) if body.applied else None
     await db.commit()
     await db.refresh(match)
-
-    job = await db.get(JobPosting, job_id)
-    if job is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Job no longer exists")
     return _to_recommendation(job, match)
 
 
@@ -153,6 +163,7 @@ async def get_settings(db: Annotated[AsyncSession, Depends(get_db)]):
 async def update_settings(body: AppSettingsOut, db: Annotated[AsyncSession, Depends(get_db)]):
     settings_row = await get_app_settings(db)
     settings_row.min_score = body.min_score
+    settings_row.locations = body.locations
     await db.commit()
     await db.refresh(settings_row)
     return settings_row
