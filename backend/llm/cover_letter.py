@@ -1,6 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from backend.llm.provider import get_llm
+from backend.llm.provider import get_llm, wait_for_rate_limit
 
 _SYSTEM = """\
 You write concise, natural cover letters for job applications on behalf of a candidate.
@@ -20,6 +20,7 @@ async def generate_cover_letter(
     missing_str = ", ".join(missing) or "none identified"
 
     llm = get_llm(temperature=0.5)
+    await wait_for_rate_limit()
     result = await llm.ainvoke(
         [
             SystemMessage(content=_SYSTEM),

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from backend.llm.provider import get_llm
+from backend.llm.provider import get_llm, wait_for_rate_limit
 
 
 class CVKeywords(BaseModel):
@@ -14,6 +14,7 @@ class CVKeywords(BaseModel):
 
 async def extract_keywords(cv_text: str) -> list[str]:
     llm = get_llm().with_structured_output(CVKeywords)
+    await wait_for_rate_limit()
     result = await llm.ainvoke(
         f"""You are a job-search assistant. Read the CV below and extract job title search phrases
             suitable for searching job boards (LinkedIn, Indeed, etc.).

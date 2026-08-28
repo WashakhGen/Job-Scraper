@@ -12,6 +12,9 @@ class Settings(BaseSettings):
 
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = ""
+    # free tier 15 req/min per project
+    # under that (raise it in .env if you're on a paid tier with a higher cap)
+    GEMINI_RATE_LIMIT_PER_MINUTE: int = 14
 
     OLLAMA_API_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3"
