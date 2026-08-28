@@ -19,7 +19,7 @@ Job Scraper is a self-hosted job search pipeline: it scrapes listings from multi
 
 No accounts, no SaaS subscription, no third party holding your CV. It runs in one container, on your own machine or server, config lives in `.env`.
 
-## Screenshots
+## Dashboard
 
 <p align="center">
   <img src="docs/screenshots/Home.png" alt="Home dashboard" width="850">
