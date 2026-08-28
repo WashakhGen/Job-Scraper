@@ -64,11 +64,11 @@ export default function CandidateProfileCard() {
     .join(' · ')
 
   return (
-    <div className="rounded-xl border border-brand-border bg-brand-surface p-4">
+    <div className="rounded-lg border border-brand-border bg-brand-bg p-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-brand-muted">
+        <h3 className="font-mono text-[11px] font-semibold uppercase tracking-wide text-brand-muted">
           Cover Letter Profile
-        </h2>
+        </h3>
         {!editing && (
           <button
             type="button"
@@ -80,7 +80,7 @@ export default function CandidateProfileCard() {
         )}
       </div>
 
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-xs text-status-danger">{error}</p>}
 
       {editing ? (
         <div className="mt-3 flex flex-col gap-2">
@@ -89,35 +89,35 @@ export default function CandidateProfileCard() {
             value={draft.name}
             onChange={(e) => setDraft({ ...draft, name: e.target.value })}
             placeholder="Full name"
-            className="rounded border border-brand-border p-1.5 text-xs"
+            className="rounded border border-brand-border bg-brand-surface p-1.5 text-xs focus:border-brand-coral focus:outline-none"
           />
           <input
             type="text"
             value={draft.headline}
             onChange={(e) => setDraft({ ...draft, headline: e.target.value })}
             placeholder="Headline, e.g. ML Engineer | PyTorch, LLMs"
-            className="rounded border border-brand-border p-1.5 text-xs"
+            className="rounded border border-brand-border bg-brand-surface p-1.5 text-xs focus:border-brand-coral focus:outline-none"
           />
           <input
             type="text"
             value={draft.location}
             onChange={(e) => setDraft({ ...draft, location: e.target.value })}
             placeholder="Location"
-            className="rounded border border-brand-border p-1.5 text-xs"
+            className="rounded border border-brand-border bg-brand-surface p-1.5 text-xs focus:border-brand-coral focus:outline-none"
           />
           <input
             type="text"
             value={draft.phone}
             onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
             placeholder="Phone"
-            className="rounded border border-brand-border p-1.5 text-xs"
+            className="rounded border border-brand-border bg-brand-surface p-1.5 text-xs focus:border-brand-coral focus:outline-none"
           />
           <input
             type="email"
             value={draft.email}
             onChange={(e) => setDraft({ ...draft, email: e.target.value })}
             placeholder="Email"
-            className="rounded border border-brand-border p-1.5 text-xs"
+            className="rounded border border-brand-border bg-brand-surface p-1.5 text-xs focus:border-brand-coral focus:outline-none"
           />
 
           <div>
@@ -125,13 +125,13 @@ export default function CandidateProfileCard() {
               {draft.links.map((link) => (
                 <span
                   key={link}
-                  className="flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-medium text-brand-teal"
+                  className="flex items-center gap-1 rounded border border-brand-border bg-brand-surface px-2 py-1 font-mono text-xs font-medium text-brand-teal"
                 >
                   {link}
                   <button
                     type="button"
                     onClick={() => removeLink(link)}
-                    className="text-brand-muted hover:text-red-600"
+                    className="text-brand-muted hover:text-status-danger"
                   >
                     ×
                   </button>
@@ -150,12 +150,12 @@ export default function CandidateProfileCard() {
                   }
                 }}
                 placeholder="e.g. github.com/you"
-                className="flex-1 rounded border border-brand-border p-1.5 text-xs"
+                className="flex-1 rounded border border-brand-border bg-brand-surface p-1.5 text-xs focus:border-brand-coral focus:outline-none"
               />
               <button
                 type="button"
                 onClick={addLink}
-                className="rounded border border-brand-border px-2 text-xs font-medium"
+                className="rounded border border-brand-border px-2 text-xs font-medium hover:border-brand-teal hover:text-brand-teal"
               >
                 Add
               </button>
@@ -167,7 +167,7 @@ export default function CandidateProfileCard() {
               type="button"
               onClick={save}
               disabled={busy}
-              className="rounded bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white"
+              className="rounded bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
             >
               Save
             </button>
@@ -184,7 +184,9 @@ export default function CandidateProfileCard() {
         <div className="mt-2 text-sm">
           <p className="font-semibold text-brand-text">{profile.name}</p>
           {profile.headline && <p className="text-brand-muted">{profile.headline}</p>}
-          {contactLine && <p className="mt-1 text-xs text-brand-muted">{contactLine}</p>}
+          {contactLine && (
+            <p className="mt-1 font-mono text-[11px] text-brand-faint">{contactLine}</p>
+          )}
         </div>
       ) : (
         <p className="mt-2 text-xs text-brand-muted">

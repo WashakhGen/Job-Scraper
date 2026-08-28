@@ -4,9 +4,11 @@ import logo from './assets/logo.png'
 import { getSchedule, getScrapeStatus, listCvs } from './api/client'
 import type { CV, ScheduleConfig } from './api/types'
 import CvUploadGate from './components/CvUploadGate'
+import LeftRail from './components/LeftRail'
+import RightRail from './components/RightRail'
+import RunStatusStrip from './components/RunStatusStrip'
 import ScheduleModal from './components/ScheduleModal'
 import ScrapeModal from './components/ScrapeModal'
-import Sidebar from './components/Sidebar'
 import StepLoader from './components/StepLoader'
 import Applied from './pages/Applied'
 import Home from './pages/Home'
@@ -15,7 +17,7 @@ import Recommended from './pages/Recommended'
 
 const tabClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-md px-3 py-1.5 text-sm font-semibold transition ${
-    isActive ? 'bg-brand-coral text-white' : 'text-brand-teal hover:bg-brand-bg'
+    isActive ? 'bg-brand-coral text-white' : 'text-brand-muted hover:bg-brand-bg hover:text-brand-teal'
   }`
 
 export default function App() {
@@ -48,7 +50,11 @@ export default function App() {
   }
 
   if (cvs === null) {
-    return <div className="flex min-h-screen items-center justify-center text-brand-muted">Loading…</div>
+    return (
+      <div className="flex min-h-screen items-center justify-center font-mono text-sm text-brand-muted">
+        Loading…
+      </div>
+    )
   }
 
   if (cvs.length === 0) {
@@ -56,12 +62,12 @@ export default function App() {
   }
 
   return (
-    <div className="flex min-h-screen bg-brand-bg">
-      <Sidebar cvs={cvs} onChange={setCvs} />
+    <div className="flex h-screen bg-brand-bg">
+      <LeftRail cvs={cvs} onChange={setCvs} />
 
-      <div className="flex-1">
-        <header className="grid h-24 grid-cols-3 items-center border-b border-brand-border bg-brand-surface px-6">
-          <img src={logo} alt="Job Scraper" className="h-16 w-auto shrink-0 justify-self-start" />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="grid h-20 shrink-0 grid-cols-3 items-center border-b border-brand-border bg-brand-surface px-6">
+          <img src={logo} alt="Job Scraper" className="h-11 w-auto shrink-0 justify-self-start" />
           <nav className="flex justify-self-center gap-2">
             <NavLink to="/" end className={tabClass}>
               Home
@@ -74,17 +80,17 @@ export default function App() {
             </NavLink>
           </nav>
 
-          <div className="flex justify-self-end items-center gap-3">
+          <div className="flex items-center justify-self-end gap-3">
             <button
               type="button"
               onClick={() => setScheduleModalOpen(true)}
-              title={schedule?.enabled ? 'Scheduled scrape is active' : 'Scheduled scrape is inactive'}
-              className="relative rounded-md border border-brand-border px-4 py-2 text-sm font-semibold text-brand-teal transition hover:border-brand-teal hover:bg-brand-bg"
+              title={schedule?.enabled ? 'Schedule is active' : 'Schedule is inactive'}
+              className="relative rounded-md border border-brand-border px-4 py-2 text-sm font-semibold text-brand-muted transition hover:border-brand-teal hover:text-brand-teal"
             >
               Schedule
               <span
                 className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-brand-surface ${
-                  schedule?.enabled ? 'bg-green-500' : 'bg-brand-border'
+                  schedule?.enabled ? 'bg-status-success' : 'bg-brand-border-strong'
                 }`}
               />
             </button>
@@ -92,8 +98,8 @@ export default function App() {
               type="button"
               onClick={() => setScrapeModalOpen(true)}
               disabled={scrapeRunning}
-              title={scrapeRunning ? 'A scrape is already running' : undefined}
-              className="inline-flex items-center justify-center rounded-md bg-brand-coral px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-coral-dark disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-brand-coral"
+              title={scrapeRunning ? 'A fetch is already running' : undefined}
+              className="inline-flex min-w-36 items-center justify-center rounded-md bg-brand-coral px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-coral-dark disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-brand-coral"
             >
               {scrapeRunning ? (
                 <StepLoader steps={['Fetching jobs…', 'Scoring matches…']} active={scrapeRunning} />
@@ -104,14 +110,9 @@ export default function App() {
           </div>
         </header>
 
-        {scrapeRunning && (
-          <div className="flex items-center gap-2 border-b border-brand-border bg-orange-50 px-6 py-2 text-sm font-medium text-brand-coral">
-            <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-brand-coral border-t-transparent" />
-            Fetching jobs — new matches will appear automatically
-          </div>
-        )}
+        <RunStatusStrip scrapeRunning={scrapeRunning} schedule={schedule} />
 
-        <main>
+        <main className="min-h-0 flex-1 overflow-y-auto">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/recommended" element={<Recommended />} />
@@ -120,6 +121,8 @@ export default function App() {
           </Routes>
         </main>
       </div>
+
+      <RightRail />
 
       {scrapeModalOpen && (
         <ScrapeModal onClose={() => setScrapeModalOpen(false)} onStarted={handleScrapeStarted} />

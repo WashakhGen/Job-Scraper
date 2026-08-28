@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { activateCv, deleteCv, updateCvKeywords, uploadCv } from '../api/client'
 import type { CV } from '../api/types'
-import CandidateProfileCard from './CandidateProfileCard'
-import SearchSettings from './SearchSettings'
+import StatusPill from './StatusPill'
 import StepLoader from './StepLoader'
 
 const MAX_CVS = 3
@@ -12,7 +11,10 @@ interface Props {
   onChange: (cvs: CV[]) => void
 }
 
-export default function Sidebar({ cvs, onChange }: Props) {
+/** CV queue rail — the one part of the old sidebar that genuinely grows, now
+ * isolated in its own rail (bounded to MAX_CVS) instead of stacking under
+ * settings panels. */
+export default function LeftRail({ cvs, onChange }: Props) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [draftKeywords, setDraftKeywords] = useState('')
@@ -85,10 +87,10 @@ export default function Sidebar({ cvs, onChange }: Props) {
   }
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col gap-4 border-r border-brand-border bg-brand-surface p-4">
+    <aside className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto border-r border-brand-border bg-brand-surface p-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-brand-muted">
-          Your CVs
+        <h2 className="font-mono text-xs font-semibold uppercase tracking-wide text-brand-muted">
+          CV Queue
         </h2>
         <button
           type="button"
@@ -111,7 +113,7 @@ export default function Sidebar({ cvs, onChange }: Props) {
         />
       </div>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-status-danger">{error}</p>}
 
       {/* compact tab row — click to expand that CV's full card below */}
       <div className="flex flex-wrap gap-1.5">
@@ -121,9 +123,9 @@ export default function Sidebar({ cvs, onChange }: Props) {
             type="button"
             onClick={() => setExpandedId(expandedId === cv.id ? null : cv.id)}
             title={cv.filename}
-            className={`max-w-[9rem] truncate rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+            className={`max-w-[9rem] truncate rounded-md border px-2.5 py-1 font-mono text-[11px] font-medium transition ${
               expandedId === cv.id
-                ? 'border-brand-coral bg-orange-50 text-brand-coral'
+                ? 'border-brand-coral bg-brand-coral-bg text-brand-coral'
                 : 'border-brand-border text-brand-muted hover:border-brand-teal hover:text-brand-teal'
             }`}
           >
@@ -139,7 +141,7 @@ export default function Sidebar({ cvs, onChange }: Props) {
           <div
             key={cv.id}
             className={`rounded-lg border p-3 text-sm ${
-              cv.is_active ? 'border-brand-coral bg-orange-50' : 'border-brand-border bg-white'
+              cv.is_active ? 'border-brand-coral bg-brand-coral-bg' : 'border-brand-border bg-brand-bg'
             }`}
           >
             <div className="flex items-center justify-between gap-2">
@@ -147,9 +149,9 @@ export default function Sidebar({ cvs, onChange }: Props) {
                 {cv.filename}
               </span>
               {cv.is_active && (
-                <span className="shrink-0 rounded-full bg-brand-coral px-2 py-0.5 text-[10px] font-semibold text-white">
-                  ACTIVE
-                </span>
+                <StatusPill tone="coral" dot>
+                  Active
+                </StatusPill>
               )}
             </div>
 
@@ -158,7 +160,7 @@ export default function Sidebar({ cvs, onChange }: Props) {
                 <textarea
                   value={draftKeywords}
                   onChange={(e) => setDraftKeywords(e.target.value)}
-                  className="w-full rounded border border-brand-border p-2 text-xs"
+                  className="w-full rounded border border-brand-border bg-brand-surface p-2 font-mono text-xs"
                   rows={3}
                   placeholder="Comma-separated keywords"
                 />
@@ -181,11 +183,11 @@ export default function Sidebar({ cvs, onChange }: Props) {
                 </div>
               </div>
             ) : (
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-1.5">
                 {cv.keywords.map((kw) => (
                   <span
                     key={kw}
-                    className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-brand-teal"
+                    className="rounded border border-brand-border bg-brand-surface px-2 py-1 font-mono text-[11px] font-medium text-brand-teal"
                   >
                     {kw}
                   </span>
@@ -218,16 +220,13 @@ export default function Sidebar({ cvs, onChange }: Props) {
                 type="button"
                 onClick={() => handleDelete(cv.id)}
                 disabled={busy}
-                className="font-medium text-red-600 hover:underline"
+                className="font-medium text-status-danger hover:underline"
               >
                 Delete
               </button>
             </div>
           </div>
         ))}
-
-      <SearchSettings />
-      <CandidateProfileCard />
     </aside>
   )
 }

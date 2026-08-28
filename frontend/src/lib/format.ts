@@ -13,3 +13,22 @@ export function matchLabel(score: number): string {
   if (score >= 60) return 'Good Match'
   return 'Weak Match'
 }
+
+export function formatRelative(iso: string | null): string | null {
+  if (!iso) return null
+  const date = new Date(iso)
+  const diffMs = date.getTime() - Date.now()
+  const diffMin = Math.round(diffMs / 60000)
+  const abs = Math.abs(diffMin)
+  const unit = abs < 60 ? `${abs}m` : abs < 1440 ? `${Math.round(abs / 60)}h` : `${Math.round(abs / 1440)}d`
+  return diffMin >= 0 ? `in ${unit}` : `${unit} ago`
+}
+
+export type ScoreTone = 'success' | 'teal' | 'idle'
+
+/** Shared score→color-role mapping so the ring and every status pill agree. */
+export function scoreTone(score: number): ScoreTone {
+  if (score >= 75) return 'success'
+  if (score >= 60) return 'teal'
+  return 'idle'
+}

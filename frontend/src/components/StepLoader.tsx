@@ -4,11 +4,13 @@ interface Props {
   steps: string[]
   active: boolean
   stepDurationMs?: number
+  tone?: 'pending' | 'current'
 }
 
-/** Small inline spinner + cycling label — e.g. "Uploading CV…" then "Analyzing CV…".
- * Purely cosmetic: steps advance on a timer, not tied to real backend progress. */
-export default function StepLoader({ steps, active, stepDurationMs = 1400 }: Props) {
+/** Small inline status-dot + cycling mono label — e.g. "UPLOADING CV" then
+ * "ANALYZING CV". Purely cosmetic: steps advance on a timer, not tied to
+ * real backend progress. Matches the pipeline-run status-pill language. */
+export default function StepLoader({ steps, active, stepDurationMs = 1400, tone = 'current' }: Props) {
   const [index, setIndex] = useState(0)
 
   useEffect(() => {
@@ -25,8 +27,12 @@ export default function StepLoader({ steps, active, stepDurationMs = 1400 }: Pro
   if (!active) return null
 
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" />
+    <span className="inline-flex items-center gap-2 font-mono text-[0.8em] font-medium uppercase tracking-wide">
+      <span
+        className={`status-pulse h-2 w-2 shrink-0 rounded-[2px] ${
+          tone === 'pending' ? 'bg-status-pending' : 'bg-current'
+        }`}
+      />
       {steps[index]}
     </span>
   )

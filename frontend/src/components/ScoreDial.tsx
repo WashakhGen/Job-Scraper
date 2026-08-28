@@ -70,7 +70,13 @@ export default function ScoreDial({ value, onChange }: Props) {
         strokeLinecap="round"
         transform={`rotate(-90 ${CENTER} ${CENTER})`}
       />
-      <text x={CENTER} y={CENTER} textAnchor="middle" dominantBaseline="central" className="fill-brand-teal text-2xl font-bold">
+      <text
+        x={CENTER}
+        y={CENTER}
+        textAnchor="middle"
+        dominantBaseline="central"
+        className="fill-brand-teal font-mono text-2xl font-semibold tabular-nums"
+      >
         {value}
       </text>
     </svg>

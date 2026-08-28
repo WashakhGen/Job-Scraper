@@ -98,35 +98,37 @@ export default function ScrapeModal({ onClose, onStarted }: Props) {
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-brand-text/50 px-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-brand-text/40 px-4 backdrop-blur-[2px]"
       style={{ animation: 'modal-backdrop-in 0.15s ease-out' }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl border border-brand-border bg-brand-surface p-6 shadow-2xl"
+        className="w-full max-w-sm rounded-lg border border-brand-border bg-brand-surface p-6 shadow-2xl"
         style={{ animation: 'modal-panel-in 0.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
       >
         <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-50 text-brand-coral">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-coral-bg text-brand-coral">
             <ScrapeIcon />
           </span>
           <div>
-            <h2 className="text-base font-bold leading-tight text-brand-text">Scrape Jobs</h2>
+            <h2 className="text-base font-bold leading-tight text-brand-text">Fetch Jobs</h2>
             <p className="text-xs text-brand-muted">Pull fresh listings from your selected sources</p>
           </div>
         </div>
 
         {error && (
-          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>
+          <p className="mt-3 rounded-md bg-status-danger-bg px-3 py-2 text-xs text-status-danger">
+            {error}
+          </p>
         )}
 
         {sources === null ? (
-          <p className="mt-5 text-sm text-brand-muted">Loading sources…</p>
+          <p className="mt-5 font-mono text-sm text-brand-muted">Loading sources…</p>
         ) : (
           <>
             <div className="mt-5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold uppercase tracking-wide text-brand-muted">
+                <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-brand-muted">
                   Sources
                 </label>
                 <button
@@ -146,9 +148,9 @@ export default function ScrapeModal({ onClose, onStarted }: Props) {
                       type="button"
                       onClick={() => toggleSource(source)}
                       aria-pressed={active}
-                      className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium capitalize transition ${
+                      className={`flex items-center justify-between rounded-md border px-3 py-2 text-sm font-medium capitalize transition ${
                         active
-                          ? 'border-brand-coral bg-orange-50 text-brand-coral'
+                          ? 'border-brand-coral bg-brand-coral-bg text-brand-coral'
                           : 'border-brand-border text-brand-muted hover:border-brand-teal hover:text-brand-teal'
                       }`}
                     >
@@ -171,7 +173,7 @@ export default function ScrapeModal({ onClose, onStarted }: Props) {
             <div className="mt-5">
               <label
                 htmlFor="scrape-limit"
-                className="text-xs font-semibold uppercase tracking-wide text-brand-muted"
+                className="font-mono text-[11px] font-semibold uppercase tracking-wide text-brand-muted"
               >
                 Jobs limit per source
               </label>
@@ -183,9 +185,9 @@ export default function ScrapeModal({ onClose, onStarted }: Props) {
                   max={100}
                   value={limit}
                   onChange={(e) => setLimit(Number(e.target.value))}
-                  className="w-full rounded-lg border border-brand-border bg-brand-bg px-3 py-2 text-sm text-brand-text focus:border-brand-coral focus:outline-none"
+                  className="w-full rounded-md border border-brand-border bg-brand-bg px-3 py-2 text-sm text-brand-text focus:border-brand-coral focus:outline-none"
                 />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-brand-muted">
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs text-brand-faint">
                   jobs
                 </span>
               </div>
@@ -199,7 +201,7 @@ export default function ScrapeModal({ onClose, onStarted }: Props) {
                 type="button"
                 onClick={onClose}
                 disabled={starting}
-                className="rounded-full border border-brand-border px-4 py-2.5 text-sm font-semibold text-brand-muted transition hover:border-brand-text hover:text-brand-text disabled:opacity-50"
+                className="rounded-md border border-brand-border px-4 py-2.5 text-sm font-semibold text-brand-muted transition hover:border-brand-text hover:text-brand-text disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -207,9 +209,9 @@ export default function ScrapeModal({ onClose, onStarted }: Props) {
                 type="button"
                 onClick={handleStart}
                 disabled={starting || selected.size === 0}
-                className="flex-1 rounded-full bg-brand-coral px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-coral-dark disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex-1 rounded-md bg-brand-coral px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-coral-dark disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {starting ? 'Starting…' : 'Start Scrape'}
+                {starting ? 'Starting…' : 'Start Fetch'}
               </button>
             </div>
           </>

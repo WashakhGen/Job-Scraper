@@ -54,11 +54,11 @@ export default function SearchSettings() {
   if (!settings) return null
 
   return (
-    <div className="rounded-xl border border-brand-border bg-brand-surface p-4">
+    <div className="rounded-lg border border-brand-border bg-brand-bg p-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-brand-muted">
+        <h3 className="font-mono text-[11px] font-semibold uppercase tracking-wide text-brand-muted">
           Search Settings
-        </h2>
+        </h3>
         {!editing && (
           <button
             type="button"
@@ -70,7 +70,7 @@ export default function SearchSettings() {
         )}
       </div>
 
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-xs text-status-danger">{error}</p>}
 
       {editing ? (
         <div className="mt-4 flex flex-col gap-4">
@@ -80,18 +80,18 @@ export default function SearchSettings() {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-brand-muted">Locations</label>
+            <label className="font-mono text-[11px] font-medium text-brand-muted">Locations</label>
             <div className="mt-1 flex flex-wrap gap-1.5">
               {draftLocations.map((loc) => (
                 <span
                   key={loc}
-                  className="flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-medium text-brand-teal"
+                  className="flex items-center gap-1 rounded border border-brand-border bg-brand-surface px-2 py-1 font-mono text-xs font-medium text-brand-teal"
                 >
                   {loc}
                   <button
                     type="button"
                     onClick={() => removeLocation(loc)}
-                    className="text-brand-muted hover:text-red-600"
+                    className="text-brand-muted hover:text-status-danger"
                   >
                     ×
                   </button>
@@ -110,12 +110,12 @@ export default function SearchSettings() {
                   }
                 }}
                 placeholder="e.g. Islamabad, Remote"
-                className="flex-1 rounded border border-brand-border p-1.5 text-xs"
+                className="flex-1 rounded border border-brand-border bg-brand-surface p-1.5 text-xs focus:border-brand-coral focus:outline-none"
               />
               <button
                 type="button"
                 onClick={addLocation}
-                className="rounded border border-brand-border px-2 text-xs font-medium"
+                className="rounded border border-brand-border px-2 text-xs font-medium hover:border-brand-teal hover:text-brand-teal"
               >
                 Add
               </button>
@@ -127,9 +127,9 @@ export default function SearchSettings() {
               type="button"
               onClick={save}
               disabled={busy}
-              className="rounded bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white"
+              className="rounded bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
             >
-              Save
+              {busy ? 'Saving…' : 'Save'}
             </button>
             <button
               type="button"
@@ -150,7 +150,7 @@ export default function SearchSettings() {
               settings.locations.map((loc) => (
                 <span
                   key={loc}
-                  className="rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-medium text-brand-teal"
+                  className="rounded border border-brand-border bg-brand-surface px-2 py-1 font-mono text-xs font-medium text-brand-teal"
                 >
                   {loc}
                 </span>

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { uploadCv } from '../api/client'
 import type { CV } from '../api/types'
+import logo from '../assets/logo.png'
 import StepLoader from './StepLoader'
 
 export default function CvUploadGate({ onUploaded }: { onUploaded: (cv: CV) => void }) {
@@ -23,17 +24,18 @@ export default function CvUploadGate({ onUploaded }: { onUploaded: (cv: CV) => v
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-brand-bg px-4">
-      <div className="w-full max-w-md rounded-2xl border border-brand-border bg-brand-surface p-10 text-center shadow-sm">
-        <h1 className="text-2xl font-bold text-brand-teal">Welcome to Job Scraper</h1>
+      <div className="w-full max-w-md rounded-lg border border-brand-border bg-brand-surface p-10 text-center shadow-sm">
+        <img src={logo} alt="Job Scraper" className="mx-auto h-10 w-auto" />
+        <h1 className="mt-6 text-xl font-bold text-brand-text">Set up your first CV</h1>
         <p className="mt-2 text-sm text-brand-muted">
-          Upload your CV to get started — we'll extract your keywords and start finding matches.
+          Upload a CV to seed the pipeline — we'll extract your keywords and start matching jobs.
         </p>
 
         <button
           type="button"
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
-          className="mt-6 flex w-full items-center justify-center rounded-lg bg-brand-coral px-4 py-3 font-semibold text-white transition hover:bg-brand-coral-dark disabled:opacity-60"
+          className="mt-6 flex w-full items-center justify-center rounded-md bg-brand-coral px-4 py-3 font-semibold text-white transition hover:bg-brand-coral-dark disabled:opacity-60"
         >
           {uploading ? (
             <StepLoader steps={['Uploading CV…', 'Analyzing CV…']} active={uploading} />
@@ -52,7 +54,7 @@ export default function CvUploadGate({ onUploaded }: { onUploaded: (cv: CV) => v
           }}
         />
 
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-3 text-sm text-status-danger">{error}</p>}
       </div>
     </div>
   )

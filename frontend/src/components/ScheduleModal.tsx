@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { getSchedule, updateSchedule } from '../api/client'
 import type { ScheduleConfig, ScheduleFrequency } from '../api/types'
+import { formatRelative } from '../lib/format'
+import StatusPill from './StatusPill'
 
 interface Props {
   onClose: () => void
@@ -29,16 +31,6 @@ function summarize(config: ScheduleConfig): string {
     return `Every ${WEEKDAYS[config.day_of_week ?? 0]} at ${time}`
   }
   return `Day ${config.day_of_month ?? 1} of every month at ${time}`
-}
-
-function formatRelative(iso: string | null): string | null {
-  if (!iso) return null
-  const date = new Date(iso)
-  const diffMs = date.getTime() - Date.now()
-  const diffMin = Math.round(diffMs / 60000)
-  const abs = Math.abs(diffMin)
-  const unit = abs < 60 ? `${abs}m` : abs < 1440 ? `${Math.round(abs / 60)}h` : `${Math.round(abs / 1440)}d`
-  return diffMin >= 0 ? `in ${unit}` : `${unit} ago`
 }
 
 function ClockIcon() {
@@ -91,41 +83,42 @@ export default function ScheduleModal({ onClose, onSaved }: Props) {
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-brand-text/50 px-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-brand-text/40 px-4 backdrop-blur-[2px]"
       style={{ animation: 'modal-backdrop-in 0.15s ease-out' }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl border border-brand-border bg-brand-surface p-6 shadow-2xl"
+        className="w-full max-w-sm rounded-lg border border-brand-border bg-brand-surface p-6 shadow-2xl"
         style={{ animation: 'modal-panel-in 0.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
       >
         <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-50 text-brand-coral">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-coral-bg text-brand-coral">
             <ClockIcon />
           </span>
           <div>
-            <h2 className="text-base font-bold leading-tight text-brand-text">Schedule Scrape</h2>
-            <p className="text-xs text-brand-muted">Run scraping automatically on a recurring cadence</p>
+            <h2 className="text-base font-bold leading-tight text-brand-text">Schedule</h2>
+            <p className="text-xs text-brand-muted">Run the pipeline automatically on a cadence</p>
           </div>
         </div>
 
         {error && (
-          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>
+          <p className="mt-3 rounded-md bg-status-danger-bg px-3 py-2 text-xs text-status-danger">
+            {error}
+          </p>
         )}
 
         {draft === null ? (
-          <p className="mt-5 text-sm text-brand-muted">Loading schedule…</p>
+          <p className="mt-5 font-mono text-sm text-brand-muted">Loading…</p>
         ) : (
           <>
-            <div className="mt-5 flex items-center justify-between rounded-lg border border-brand-border bg-brand-bg px-3 py-2">
-              <div className="flex items-center gap-2">
-                <span className={`h-2 w-2 rounded-full ${schedule?.enabled ? 'bg-green-500' : 'bg-brand-border'}`} />
-                <span className="text-xs font-semibold text-brand-text">
-                  {schedule?.enabled ? 'Active' : 'Inactive'}
-                </span>
-              </div>
+            <div className="mt-5 flex items-center justify-between rounded-md border border-brand-border bg-brand-bg px-3 py-2">
+              <StatusPill tone={schedule?.enabled ? 'success' : 'idle'} dot pulse={schedule?.enabled}>
+                {schedule?.enabled ? 'Active' : 'Inactive'}
+              </StatusPill>
               {schedule?.enabled && schedule.next_run_at && (
-                <span className="text-[11px] text-brand-muted">Next {formatRelative(schedule.next_run_at)}</span>
+                <span className="font-mono text-[11px] text-brand-muted">
+                  Next {formatRelative(schedule.next_run_at)}
+                </span>
               )}
             </div>
 
@@ -133,16 +126,16 @@ export default function ScheduleModal({ onClose, onSaved }: Props) {
               type="button"
               onClick={() => setDraft({ ...draft, enabled: !draft.enabled })}
               aria-pressed={draft.enabled}
-              className={`mt-4 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium transition ${
+              className={`mt-4 flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium transition ${
                 draft.enabled
-                  ? 'border-brand-coral bg-orange-50 text-brand-coral'
+                  ? 'border-brand-coral bg-brand-coral-bg text-brand-coral'
                   : 'border-brand-border text-brand-muted hover:border-brand-teal hover:text-brand-teal'
               }`}
             >
               {draft.enabled ? 'Enabled' : 'Disabled'}
               <span
                 className={`relative h-5 w-9 rounded-full transition ${
-                  draft.enabled ? 'bg-brand-coral' : 'bg-brand-border'
+                  draft.enabled ? 'bg-brand-coral' : 'bg-brand-border-strong'
                 }`}
               >
                 <span
@@ -154,7 +147,7 @@ export default function ScheduleModal({ onClose, onSaved }: Props) {
             </button>
 
             <div className="mt-4">
-              <label className="text-xs font-semibold uppercase tracking-wide text-brand-muted">
+              <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-brand-muted">
                 Frequency
               </label>
               <div className="mt-1.5 flex gap-1.5">
@@ -163,9 +156,9 @@ export default function ScheduleModal({ onClose, onSaved }: Props) {
                     key={f.value}
                     type="button"
                     onClick={() => setDraft({ ...draft, frequency: f.value })}
-                    className={`flex-1 rounded-lg border px-2 py-1.5 text-xs font-semibold transition ${
+                    className={`flex-1 rounded-md border px-2 py-1.5 text-xs font-semibold transition ${
                       draft.frequency === f.value
-                        ? 'border-brand-coral bg-orange-50 text-brand-coral'
+                        ? 'border-brand-coral bg-brand-coral-bg text-brand-coral'
                         : 'border-brand-border text-brand-muted hover:border-brand-teal hover:text-brand-teal'
                     }`}
                   >
@@ -177,7 +170,7 @@ export default function ScheduleModal({ onClose, onSaved }: Props) {
 
             {draft.frequency === 'weekly' && (
               <div className="mt-4">
-                <label className="text-xs font-semibold uppercase tracking-wide text-brand-muted">
+                <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-brand-muted">
                   Day of week
                 </label>
                 <div className="mt-1.5 flex gap-1">
@@ -186,9 +179,9 @@ export default function ScheduleModal({ onClose, onSaved }: Props) {
                       key={day}
                       type="button"
                       onClick={() => setDraft({ ...draft, day_of_week: idx })}
-                      className={`flex-1 rounded-md border py-1.5 text-[11px] font-semibold transition ${
+                      className={`flex-1 rounded border py-1.5 font-mono text-[11px] font-semibold transition ${
                         (draft.day_of_week ?? 0) === idx
-                          ? 'border-brand-coral bg-orange-50 text-brand-coral'
+                          ? 'border-brand-coral bg-brand-coral-bg text-brand-coral'
                           : 'border-brand-border text-brand-muted hover:border-brand-teal hover:text-brand-teal'
                       }`}
                     >
@@ -201,7 +194,7 @@ export default function ScheduleModal({ onClose, onSaved }: Props) {
 
             {draft.frequency === 'monthly' && (
               <div className="mt-4">
-                <label htmlFor="schedule-dom" className="text-xs font-semibold uppercase tracking-wide text-brand-muted">
+                <label htmlFor="schedule-dom" className="font-mono text-[11px] font-semibold uppercase tracking-wide text-brand-muted">
                   Day of month (1–28)
                 </label>
                 <input
@@ -213,14 +206,14 @@ export default function ScheduleModal({ onClose, onSaved }: Props) {
                   onChange={(e) =>
                     setDraft({ ...draft, day_of_month: Math.min(28, Math.max(1, Number(e.target.value))) })
                   }
-                  className="mt-1.5 w-full rounded-lg border border-brand-border bg-brand-bg px-3 py-2 text-sm text-brand-text focus:border-brand-coral focus:outline-none"
+                  className="mt-1.5 w-full rounded-md border border-brand-border bg-brand-bg px-3 py-2 text-sm text-brand-text focus:border-brand-coral focus:outline-none"
                 />
               </div>
             )}
 
             <div className="mt-4 flex gap-3">
               <div className="flex-1">
-                <label htmlFor="schedule-time" className="text-xs font-semibold uppercase tracking-wide text-brand-muted">
+                <label htmlFor="schedule-time" className="font-mono text-[11px] font-semibold uppercase tracking-wide text-brand-muted">
                   Time
                 </label>
                 <input
@@ -231,11 +224,11 @@ export default function ScheduleModal({ onClose, onSaved }: Props) {
                     const [h, m] = e.target.value.split(':').map(Number)
                     setDraft({ ...draft, hour: h, minute: m })
                   }}
-                  className="mt-1.5 w-full rounded-lg border border-brand-border bg-brand-bg px-3 py-2 text-sm text-brand-text focus:border-brand-coral focus:outline-none"
+                  className="mt-1.5 w-full rounded-md border border-brand-border bg-brand-bg px-3 py-2 text-sm text-brand-text focus:border-brand-coral focus:outline-none"
                 />
               </div>
               <div className="flex-1">
-                <label htmlFor="schedule-limit" className="text-xs font-semibold uppercase tracking-wide text-brand-muted">
+                <label htmlFor="schedule-limit" className="font-mono text-[11px] font-semibold uppercase tracking-wide text-brand-muted">
                   Limit / source
                 </label>
                 <input
@@ -245,19 +238,19 @@ export default function ScheduleModal({ onClose, onSaved }: Props) {
                   max={100}
                   value={draft.limit}
                   onChange={(e) => setDraft({ ...draft, limit: Number(e.target.value) })}
-                  className="mt-1.5 w-full rounded-lg border border-brand-border bg-brand-bg px-3 py-2 text-sm text-brand-text focus:border-brand-coral focus:outline-none"
+                  className="mt-1.5 w-full rounded-md border border-brand-border bg-brand-bg px-3 py-2 text-sm text-brand-text focus:border-brand-coral focus:outline-none"
                 />
               </div>
             </div>
 
-            <p className="mt-4 text-[11px] leading-snug text-brand-muted">{summarize(draft)}</p>
+            <p className="mt-4 font-mono text-[11px] leading-snug text-brand-faint">{summarize(draft)}</p>
 
             <div className="mt-6 flex gap-2">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={busy}
-                className="rounded-full border border-brand-border px-4 py-2.5 text-sm font-semibold text-brand-muted transition hover:border-brand-text hover:text-brand-text disabled:opacity-50"
+                className="rounded-md border border-brand-border px-4 py-2.5 text-sm font-semibold text-brand-muted transition hover:border-brand-text hover:text-brand-text disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -265,7 +258,7 @@ export default function ScheduleModal({ onClose, onSaved }: Props) {
                 type="button"
                 onClick={handleSave}
                 disabled={busy}
-                className="flex-1 rounded-full bg-brand-coral px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-coral-dark disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex-1 rounded-md bg-brand-coral px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-coral-dark disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {busy ? 'Saving…' : 'Save Schedule'}
               </button>

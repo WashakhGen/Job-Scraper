@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { listApplied } from '../api/client'
 import type { JobRecommendation } from '../api/types'
+import GlassCardGrid from '../components/GlassCardGrid'
 import JobCard from '../components/JobCard'
 
 export default function Applied() {
@@ -21,21 +22,28 @@ export default function Applied() {
   }
 
   if (error) {
-    return <div className="p-6 text-red-600">{error}</div>
+    return <div className="p-6 text-status-danger">{error}</div>
   }
 
   if (jobs === null) {
-    return <div className="p-6 text-brand-muted">Loading…</div>
+    return <div className="p-6 font-mono text-sm text-brand-muted">Loading…</div>
   }
 
   return (
     <div className="p-6">
-      <h2 className="mb-4 text-lg font-bold text-brand-teal">Applied Jobs</h2>
+      <div className="mb-3 flex items-baseline gap-2">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-brand-text">
+          Applied Jobs
+        </h2>
+        <span className="font-mono text-xs text-brand-faint">{jobs.length}</span>
+      </div>
       {jobs.length === 0 ? (
-        <p className="text-sm text-brand-muted">Nothing applied yet.</p>
+        <p className="rounded-lg border border-dashed border-brand-border px-4 py-6 text-center text-sm text-brand-muted">
+          Nothing applied yet.
+        </p>
       ) : (
-        <div className="grid grid-cols-3 gap-4">
-          {jobs.map((job) => (
+        <GlassCardGrid>
+          {jobs.map((job, i) => (
             <JobCard
               key={job.job_id}
               job={{
@@ -49,9 +57,10 @@ export default function Applied() {
                 applied: job.applied,
               }}
               onAppliedChange={handleAppliedChange}
+              index={i}
             />
           ))}
-        </div>
+        </GlassCardGrid>
       )}
     </div>
   )

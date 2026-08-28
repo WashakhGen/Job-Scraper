@@ -1,18 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-  /* palette pulled from the Job Scraper logo */
-  --color-brand-teal: #0e4a5c;
-  --color-brand-teal-dark: #0a3644;
-  --color-brand-coral: #f2704a;
-  --color-brand-coral-dark: #d9552f;
-  --color-brand-bg: #eaf3fa;
+  /* Pipeline Board — light engineering-console ground. Brand teal/coral kept
+     from the locked logo; status roles follow GitHub Actions' own grammar
+     since that's the world this direction commits to. */
+  --color-brand-bg: #f5f7fa;
   --color-brand-surface: #ffffff;
-  --color-brand-border: #d7e6f0;
+  --color-brand-surface-raised: #eef1f5;
+  --color-brand-border: #d8dee5;
+  --color-brand-border-strong: #c2cad3;
   --color-brand-text: #0e2530;
   --color-brand-muted: #5b7683;
+  --color-brand-faint: #8a99a3;
 
-  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --color-brand-teal: #0e4a5c;
+  --color-brand-teal-dark: #0a3644;
+  --color-brand-teal-bg: #e6eef1;
+  --color-brand-coral: #f2704a;
+  --color-brand-coral-dark: #d9552f;
+  --color-brand-coral-bg: #fdece5;
+
+  --color-status-success: #1a7f37;
+  --color-status-success-bg: #dafbe1;
+  --color-status-pending: #9a6700;
+  --color-status-pending-bg: #fff8c5;
+  --color-status-idle: #57606a;
+  --color-status-idle-bg: #eef1f4;
+  --color-status-danger: #cf222e;
+  --color-status-danger-bg: #ffebe9;
+
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 }
 
 body {
@@ -20,6 +39,38 @@ body {
   background: var(--color-brand-bg);
   color: var(--color-brand-text);
   font-family: var(--font-sans);
+}
+
+/* browser surfaces carry the design too — theme them from the palette */
+::selection {
+  background: var(--color-brand-coral);
+  color: #ffffff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-coral);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-border-strong);
+  border-radius: 999px;
+  border: 2px solid var(--color-brand-bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-muted);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 @keyframes modal-backdrop-in {
@@ -40,4 +91,58 @@ body {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+/* signature motion: pipeline rows check in top-to-bottom, like sequential
+   CI steps completing — used by the run-row list */
+@keyframes row-check-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.row-check-in {
+  animation: row-check-in 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* status-pulse: the small square dot on running/pending states */
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.status-pulse {
+  animation: status-pulse 1.4s ease-in-out infinite;
+}
+
+/* run-status strip shimmer while a scrape is actively running */
+@keyframes strip-sweep {
+  from {
+    background-position: -200px 0;
+  }
+  to {
+    background-position: 200px 0;
+  }
+}
+
+.strip-sweep {
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    rgba(154, 103, 0, 0.14),
+    transparent
+  );
+  background-size: 200px 100%;
+  background-repeat: no-repeat;
+  animation: strip-sweep 1.6s linear infinite;
 }

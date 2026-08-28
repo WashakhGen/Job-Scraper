@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { listRecommended } from '../api/client'
 import type { JobRecommendation } from '../api/types'
+import GlassCardGrid from '../components/GlassCardGrid'
 import JobCard from '../components/JobCard'
 
 export default function Recommended() {
@@ -14,11 +15,11 @@ export default function Recommended() {
   }, [])
 
   if (error) {
-    return <div className="p-6 text-red-600">{error}</div>
+    return <div className="p-6 text-status-danger">{error}</div>
   }
 
   if (jobs === null) {
-    return <div className="p-6 text-brand-muted">Loading…</div>
+    return <div className="p-6 font-mono text-sm text-brand-muted">Loading…</div>
   }
 
   function handleAppliedChange(jobId: number, applied: boolean) {
@@ -30,14 +31,19 @@ export default function Recommended() {
 
   return (
     <div className="p-6">
-      <h2 className="mb-4 text-lg font-bold text-brand-teal">Recommended Jobs</h2>
+      <div className="mb-3 flex items-baseline gap-2">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-brand-text">
+          Recommended Jobs
+        </h2>
+        <span className="font-mono text-xs text-brand-faint">{jobs.length}</span>
+      </div>
       {jobs.length === 0 ? (
-        <p className="text-sm text-brand-muted">
-          No recommendations yet — trigger a scrape to get started.
+        <p className="rounded-lg border border-dashed border-brand-border px-4 py-6 text-center text-sm text-brand-muted">
+          No recommendations yet — trigger a fetch to get started.
         </p>
       ) : (
-        <div className="grid grid-cols-3 gap-4">
-          {jobs.map((job) => (
+        <GlassCardGrid>
+          {jobs.map((job, i) => (
             <JobCard
               key={job.job_id}
               job={{
@@ -51,9 +57,10 @@ export default function Recommended() {
                 applied: job.applied,
               }}
               onAppliedChange={handleAppliedChange}
+              index={i}
             />
           ))}
-        </div>
+        </GlassCardGrid>
       )}
     </div>
   )
