@@ -17,7 +17,7 @@ class RemoteOKScraper(ScraperAdapter):
     async def fetch(
         self, keywords: list[str], location: str | None = None, limit: int = 25
     ) -> list[RawJob]:
-        resp = await self.client.get(BASE_URL, headers={"User-Agent": "job-scrapper/1.0"})
+        resp = await self.client.get(BASE_URL, headers={"User-Agent": "Job-Scraper/1.0"})
         resp.raise_for_status()
         items = resp.json()[1:]  # first item is API metadata, not a job
 

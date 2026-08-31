@@ -73,8 +73,8 @@ No accounts, no SaaS subscription, no third party holding your CV. It runs in on
 The recommended path is Docker — one container, one persistent volume for your database, CVs, and logs.
 
 ```bash
-git clone <this-repo>
-cd job-scrapper
+git clone https://github.com/WashakhGen/Job-Scraper.git
+cd Job-Scraper
 cp .env.example .env   # fill in GEMINI_API_KEY / APIFY_API_TOKEN, etc.
 docker compose up -d --build
 ```
