@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Awaitable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
@@ -19,6 +20,19 @@ from backend.schema.match import AppliedUpdate, JobDetail, JobRecommendation
 from core.pdf import build_pdf, cover_letter_to_html
 
 router = APIRouter(tags=["jobs"])
+
+
+async def _call_llm_or_502[T](coro: Awaitable[T]) -> T:
+    """it surfaces a clean 502
+    traceback when the LLM still can't produce a usable response."""
+    try:
+        return await coro
+    except Exception as exc:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            f"The LLM didn't return a usable response ({type(exc).__name__}). "
+            "This can happen with local models under load — try again.",
+        ) from exc
 
 
 def _to_recommendation(job: JobPosting, match: MatchResult) -> JobRecommendation:
@@ -197,12 +211,14 @@ async def create_manual_job(
     db.add(job)
     await db.flush()  # need job.id before the match row can reference it
 
-    result = await score_match(
-        cv_text=cv_text,
-        job_title=job.title,
-        job_description=job.description,
-        job_location=job.location,
-        target_locations=app_settings.locations,
+    result = await _call_llm_or_502(
+        score_match(
+            cv_text=cv_text,
+            job_title=job.title,
+            job_description=job.description,
+            job_location=job.location,
+            target_locations=app_settings.locations,
+        )
     )
 
     match = MatchResult(
@@ -216,12 +232,14 @@ async def create_manual_job(
 
     # explicit ad-hoc request, not the auto-recommend flow — generate the
     # letter regardless of min_score, the user is already looking at this job
-    match.cover_letter = await generate_cover_letter(
-        cv_text=cv_text,
-        job_title=job.title,
-        company=job.company,
-        matched=match.matched,
-        missing=match.missing,
+    match.cover_letter = await _call_llm_or_502(
+        generate_cover_letter(
+            cv_text=cv_text,
+            job_title=job.title,
+            company=job.company,
+            matched=match.matched,
+            missing=match.missing,
+        )
     )
     db.add(match)
 
@@ -277,12 +295,14 @@ async def generate_job_cover_letter(
     )
     if match is None:
         app_settings = await get_app_settings(db)
-        result = await score_match(
-            cv_text=cv_text,
-            job_title=job.title,
-            job_description=job.description or "",
-            job_location=job.location or "",
-            target_locations=app_settings.locations,
+        result = await _call_llm_or_502(
+            score_match(
+                cv_text=cv_text,
+                job_title=job.title,
+                job_description=job.description or "",
+                job_location=job.location or "",
+                target_locations=app_settings.locations,
+            )
         )
         match = MatchResult(
             cv_id=cv_id,
@@ -294,12 +314,14 @@ async def generate_job_cover_letter(
         )
         db.add(match)
 
-    match.cover_letter = await generate_cover_letter(
-        cv_text=cv_text,
-        job_title=job.title,
-        company=job.company,
-        matched=match.matched,
-        missing=match.missing,
+    match.cover_letter = await _call_llm_or_502(
+        generate_cover_letter(
+            cv_text=cv_text,
+            job_title=job.title,
+            company=job.company,
+            matched=match.matched,
+            missing=match.missing,
+        )
     )
     await db.commit()
     await db.refresh(match)

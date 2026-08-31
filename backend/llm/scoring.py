@@ -1,18 +1,15 @@
 import asyncio
 from collections.abc import Sequence
 
-from langchain_core.exceptions import ModelError
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from backend.databases.models import JobPosting
-from backend.llm.provider import get_llm, wait_for_rate_limit
+from backend.llm.provider import invoke_structured_with_retry
 from core.logging import log_main
 
 # free-tier Gemini is capped at 15 requests/min — keep concurrency modest so a
 _SCORE_CONCURRENCY = 3
-_MAX_RETRIES = 3
-_RETRY_BASE_DELAY = 3.0  # seconds
 
 
 class MatchResultSchema(BaseModel):
@@ -72,15 +69,14 @@ async def score_match(
     job_location: str,
     target_locations: list[str],
 ) -> MatchResultSchema:
-    llm = get_llm().with_structured_output(MatchResultSchema)
-    await wait_for_rate_limit()
     location_context = (
         f"Candidate's target locations: {', '.join(target_locations)}"
         if target_locations
         else "Candidate has not specified target locations — do not penalize location, "
         "set location_match to true."
     )
-    result = await llm.ainvoke(
+    result = await invoke_structured_with_retry(
+        MatchResultSchema,
         [
             SystemMessage(content=_RUBRIC),
             HumanMessage(
@@ -92,9 +88,8 @@ async def score_match(
                     f"Job description:\n{job_description}"
                 )
             ),
-        ]
+        ],
     )
-    assert isinstance(result, MatchResultSchema)
 
     # don't just trust the LLM followed the cap instruction — enforce it in code too
     if target_locations and not result.location_match:
@@ -113,42 +108,23 @@ async def _score_job(
     Score one job while respecting the concurrency limit.
 
     Returns the job together with its match result.
-    If scoring still fails after retries, the result is None.
+    If scoring still fails, the result is None.
     """
 
     async with semaphore:
-        last_exc: Exception | None = None
+        try:
+            result = await score_match(
+                cv_text=cv_text,
+                job_title=job.title,
+                job_description=job.description or "",
+                job_location=job.location or "",
+                target_locations=target_locations,
+            )
+            return job, result
 
-        for attempt in range(_MAX_RETRIES + 1):
-            try:
-                result = await score_match(
-                    cv_text=cv_text,
-                    job_title=job.title,
-                    job_description=job.description or "",
-                    job_location=job.location or "",
-                    target_locations=target_locations,
-                )
-
-                return job, result
-
-            except Exception as exc:
-                last_exc = exc
-                retryable = isinstance(exc, ModelError) and exc.is_retryable
-
-                if retryable and attempt < _MAX_RETRIES:
-                    delay = _RETRY_BASE_DELAY * (2**attempt)
-                    log_main(
-                        f"job {job.id} ({job.title}): {type(exc).__name__}, "
-                        f"retrying in {delay:.0f}s ({attempt + 1}/{_MAX_RETRIES})"
-                    )
-                    await asyncio.sleep(delay)
-                    continue
-
-                break
-
-        log_main(f"Error scoring job {job.id} ({job.title}): {type(last_exc).__name__}: {last_exc}")
-
-        return job, None
+        except Exception as exc:
+            log_main(f"Error scoring job {job.id} ({job.title}): {type(exc).__name__}: {exc}")
+            return job, None
 
 
 async def score_jobs(

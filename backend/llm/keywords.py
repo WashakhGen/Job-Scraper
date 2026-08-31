@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from backend.llm.provider import get_llm, wait_for_rate_limit
+from backend.llm.provider import invoke_structured_with_retry
 
 
 class CVKeywords(BaseModel):
@@ -13,9 +13,8 @@ class CVKeywords(BaseModel):
 
 
 async def extract_keywords(cv_text: str) -> list[str]:
-    llm = get_llm().with_structured_output(CVKeywords)
-    await wait_for_rate_limit()
-    result = await llm.ainvoke(
+    result = await invoke_structured_with_retry(
+        CVKeywords,
         f"""You are a job-search assistant. Read the CV below and extract job title search phrases
             suitable for searching job boards (LinkedIn, Indeed, etc.).
         Rules:
@@ -33,7 +32,6 @@ async def extract_keywords(cv_text: str) -> list[str]:
         ["Machine Learning Engineer", "AI Engineer", "Backend Engineer (Python)"]
 
         CV:
-        {cv_text}"""
+        {cv_text}""",
     )
-    assert isinstance(result, CVKeywords)  # guaranteed by with_structured_output(CVKeywords)
     return result.keywords

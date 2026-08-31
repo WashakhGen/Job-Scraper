@@ -117,7 +117,7 @@ All configuration lives in `.env` (see `.env.example` for the full list). The es
 | `APP_PASSWORD` | Set to require HTTP Basic Auth on every route. Empty (default) = no auth |
 | `APP_USERNAME` | Username paired with `APP_PASSWORD` (default: `admin`) |
 
-Target locations, active CV, minimum score, and the scrape schedule are all set from the app itself once it's running — they're stored in the database, not `.env`.
+Target locations, active CV, minimum score, and the scrape schedule are all set from the app itself once it's running they're stored in the database, not `.env`.
 
 ## Supported Sources
 

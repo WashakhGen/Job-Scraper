@@ -1,6 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from backend.llm.provider import get_llm, wait_for_rate_limit
+from backend.llm.provider import invoke_text_with_retry
 
 _SYSTEM = """\
 You write concise, natural cover letters for job applications on behalf of a candidate.
@@ -19,9 +19,7 @@ async def generate_cover_letter(
     matched_str = ", ".join(matched) or "none identified"
     missing_str = ", ".join(missing) or "none identified"
 
-    llm = get_llm(temperature=0.5)
-    await wait_for_rate_limit()
-    result = await llm.ainvoke(
+    return await invoke_text_with_retry(
         [
             SystemMessage(content=_SYSTEM),
             HumanMessage(
@@ -33,21 +31,6 @@ async def generate_cover_letter(
                     f"Requirements this candidate is missing: {missing_str}"
                 )
             ),
-        ]
-    )
-    content = result.content
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        text_parts: list[str] = []
-        for part in content:
-            if isinstance(part, str):
-                text_parts.append(part)
-            elif isinstance(part, dict) and part.get("type") == "text":
-                text_parts.append(part.get("text", ""))
-        if text_parts:
-            return "\n".join(text_parts)
-
-    raise ValueError(
-        f"Unexpected cover letter content type: {type(content).__name__} — {content!r}"
+        ],
+        temperature=0.5,
     )
