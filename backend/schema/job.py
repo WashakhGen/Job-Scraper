@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class JobOut(BaseModel):
@@ -21,3 +21,15 @@ class JobOut(BaseModel):
 class AppSettingsOut(BaseModel):
     min_score: int
     locations: list[str]
+
+
+class ManualJobCreate(BaseModel):
+    """A job pasted in from outside the scraped sources — LinkedIn, a
+    company site, an email, wherever. Scored and given a cover letter
+    immediately, same as any other job from there on."""
+
+    title: str = Field(min_length=1)
+    company: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    location: str = ""
+    url: str = ""

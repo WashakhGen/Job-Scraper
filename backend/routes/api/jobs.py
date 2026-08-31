@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
@@ -13,7 +14,7 @@ from backend.databases.utils import get_app_settings, get_candidate_profile
 from backend.llm.cover_letter import generate_cover_letter
 from backend.llm.scoring import score_match
 from backend.routes.api.cv import _get_or_create_markdown
-from backend.schema.job import AppSettingsOut, JobOut
+from backend.schema.job import AppSettingsOut, JobOut, ManualJobCreate
 from backend.schema.match import AppliedUpdate, JobDetail, JobRecommendation
 from core.pdf import build_pdf, cover_letter_to_html
 
@@ -111,6 +112,28 @@ async def list_applied_jobs(
     return [_to_recommendation(job, match) for job, match in result.all()]
 
 
+@router.get("/manual", response_model=list[JobRecommendation])
+async def list_manual_jobs(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cv_id: int | None = None,
+):
+    """Jobs added via 'Bring Your own Job' — every one of them, regardless
+    of score, since they were never gated behind min_score to begin with.
+
+    Match-joined (unlike GET /{source}, which returns bare JobOut with no
+    score) so the score and cover letter that were generated at creation
+    time are actually visible here instead of looking unscored.
+    """
+    cv_id = await _resolve_cv_id(db, cv_id)
+    result = await db.execute(
+        select(JobPosting, MatchResult)
+        .join(MatchResult, MatchResult.job_id == JobPosting.id)
+        .where(JobPosting.source == "manual", MatchResult.cv_id == cv_id)
+        .order_by(JobPosting.scraped_at.desc())
+    )
+    return [_to_recommendation(job, match) for job, match in result.all()]
+
+
 @router.put("/{job_id}/applied", response_model=JobRecommendation)
 async def mark_applied(
     job_id: int,
@@ -144,6 +167,69 @@ async def mark_applied(
     await db.commit()
     await db.refresh(match)
     return _to_recommendation(job, match)
+
+
+@router.post("/manual", response_model=JobDetail)
+async def create_manual_job(
+    body: ManualJobCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cv_id: int | None = None,
+):
+    """For a job found outside the scraped sources"""
+    cv_id = await _resolve_cv_id(db, cv_id)
+    cv = await db.get(CV, cv_id)
+    if cv is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "CV not found")
+
+    cv_text = _get_or_create_markdown(Path(cv.file_path))
+    app_settings = await get_app_settings(db)
+
+    job = JobPosting(
+        source="manual",
+        external_id=str(uuid.uuid4()),
+        title=body.title.strip(),
+        company=body.company.strip(),
+        location=body.location.strip(),
+        url=body.url.strip(),
+        description=body.description.strip(),
+        posted_at=None,
+    )
+    db.add(job)
+    await db.flush()  # need job.id before the match row can reference it
+
+    result = await score_match(
+        cv_text=cv_text,
+        job_title=job.title,
+        job_description=job.description,
+        job_location=job.location,
+        target_locations=app_settings.locations,
+    )
+
+    match = MatchResult(
+        cv_id=cv_id,
+        job_id=job.id,
+        score=result.score,
+        rationale=result.rationale,
+        matched=result.matched,
+        missing=result.missing,
+    )
+
+    # explicit ad-hoc request, not the auto-recommend flow — generate the
+    # letter regardless of min_score, the user is already looking at this job
+    match.cover_letter = await generate_cover_letter(
+        cv_text=cv_text,
+        job_title=job.title,
+        company=job.company,
+        matched=match.matched,
+        missing=match.missing,
+    )
+    db.add(match)
+
+    await db.commit()
+    await db.refresh(job)
+    await db.refresh(match)
+
+    return _to_detail(job, match)
 
 
 @router.get("/detail/{job_id}", response_model=JobDetail)

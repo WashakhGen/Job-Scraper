@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Route, Routes } from 'react-router-dom'
+import { NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import logo from './assets/logo.png'
 import { getSchedule, getScrapeStatus, listCvs } from './api/client'
 import type { CV, ScheduleConfig } from './api/types'
 import CvUploadGate from './components/CvUploadGate'
 import LeftRail from './components/LeftRail'
+import ManualJobModal from './components/ManualJobModal'
 import RightRail from './components/RightRail'
 import RunStatusStrip from './components/RunStatusStrip'
 import ScheduleModal from './components/ScheduleModal'
@@ -13,6 +14,7 @@ import StepLoader from './components/StepLoader'
 import Applied from './pages/Applied'
 import Home from './pages/Home'
 import JobDetail from './pages/JobDetail'
+import MyJobs from './pages/MyJobs'
 import Recommended from './pages/Recommended'
 
 const tabClass = ({ isActive }: { isActive: boolean }) =>
@@ -21,9 +23,11 @@ const tabClass = ({ isActive }: { isActive: boolean }) =>
   }`
 
 export default function App() {
+  const navigate = useNavigate()
   const [cvs, setCvs] = useState<CV[] | null>(null)
   const [scrapeModalOpen, setScrapeModalOpen] = useState(false)
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
+  const [manualJobModalOpen, setManualJobModalOpen] = useState(false)
   const [schedule, setSchedule] = useState<ScheduleConfig | null>(null)
   const [scrapeRunning, setScrapeRunning] = useState(false)
 
@@ -66,9 +70,9 @@ export default function App() {
       <LeftRail cvs={cvs} onChange={setCvs} />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="grid h-20 shrink-0 grid-cols-3 items-center border-b border-brand-border bg-brand-surface px-6">
-          <img src={logo} alt="Job Scraper" className="h-11 w-auto shrink-0 justify-self-start" />
-          <nav className="flex justify-self-center gap-2">
+        <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b border-brand-border bg-brand-surface px-6">
+          <img src={logo} alt="Job Scraper" className="h-11 w-auto shrink-0" />
+          <nav className="flex shrink-0 items-center gap-2">
             <NavLink to="/" end className={tabClass}>
               Home
             </NavLink>
@@ -78,9 +82,19 @@ export default function App() {
             <NavLink to="/applied" className={tabClass}>
               Applied
             </NavLink>
+            <NavLink to="/my-jobs" className={tabClass}>
+              My Jobs
+            </NavLink>
+            <button
+              type="button"
+              onClick={() => setManualJobModalOpen(true)}
+              className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-semibold text-brand-muted transition hover:bg-brand-bg hover:text-brand-teal"
+            >
+              Bring Your own Job
+            </button>
           </nav>
 
-          <div className="flex items-center justify-self-end gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             <button
               type="button"
               onClick={() => setScheduleModalOpen(true)}
@@ -117,6 +131,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/recommended" element={<Recommended />} />
             <Route path="/applied" element={<Applied />} />
+            <Route path="/my-jobs" element={<MyJobs />} />
             <Route path="/job/:id" element={<JobDetail />} />
           </Routes>
         </main>
@@ -130,6 +145,13 @@ export default function App() {
 
       {scheduleModalOpen && (
         <ScheduleModal onClose={() => setScheduleModalOpen(false)} onSaved={setSchedule} />
+      )}
+
+      {manualJobModalOpen && (
+        <ManualJobModal
+          onClose={() => setManualJobModalOpen(false)}
+          onCreated={(job) => navigate(`/job/${job.job_id}`)}
+        />
       )}
     </div>
   )

@@ -57,6 +57,9 @@ export const listRecommended = (cvId?: number) =>
 export const listApplied = (cvId?: number) =>
   request<JobRecommendation[]>(`/jobs/applied${cvId ? `?cv_id=${cvId}` : ''}`)
 
+export const listManualJobs = (cvId?: number) =>
+  request<JobRecommendation[]>(`/jobs/manual${cvId ? `?cv_id=${cvId}` : ''}`)
+
 export const getJobDetail = (jobId: number, cvId?: number) =>
   request<JobDetail>(`/jobs/detail/${jobId}${cvId ? `?cv_id=${cvId}` : ''}`)
 
@@ -69,6 +72,20 @@ export const setApplied = (jobId: number, applied: boolean) =>
 export const generateCoverLetter = (jobId: number, cvId?: number) =>
   request<JobDetail>(`/jobs/${jobId}/cover-letter${cvId ? `?cv_id=${cvId}` : ''}`, {
     method: 'POST',
+  })
+
+export interface ManualJobInput {
+  title: string
+  company: string
+  description: string
+  location?: string
+  url?: string
+}
+
+export const createManualJob = (body: ManualJobInput, cvId?: number) =>
+  request<JobDetail>(`/jobs/manual${cvId ? `?cv_id=${cvId}` : ''}`, {
+    method: 'POST',
+    body: JSON.stringify(body),
   })
 
 // server-rendered file, not fetched as JSON — used directly as a link href
