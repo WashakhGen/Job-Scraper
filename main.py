@@ -12,9 +12,10 @@ from tzlocal import get_localzone_name
 from backend.databases.session import AsyncSessionLocal, engine, init_models
 from backend.databases.utils import get_schedule_config
 from backend.routes.api import cv, jobs, schedule, scrape
-from backend.routes.background.scheduler_service import configure_job
+from backend.routes.background.scheduler_service import configure_job, start_heartbeat
 from backend.routes.background.scrape_state import ScrapeState
 from backend.scrapers import sources  # noqa: F401 — triggers @register on import
+from core.auth import BasicAuthMiddleware
 from core.logging import log_main
 from core.settings import SETTINGS
 
@@ -35,6 +36,7 @@ async def lifespan(app: FastAPI):
 
     scheduler.start()
     app.state.scheduler = scheduler
+    start_heartbeat(scheduler)
     async with AsyncSessionLocal() as session:
         schedule_config = await get_schedule_config(session)
     configure_job(scheduler, app.state, schedule_config)
@@ -46,6 +48,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Job Scrapper", lifespan=lifespan)
+app.add_middleware(BasicAuthMiddleware)
 app.include_router(scrape.router, prefix="/api/scrape")
 app.include_router(jobs.router, prefix="/api/jobs")
 app.include_router(cv.router, prefix="/api/cv")

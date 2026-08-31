@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 from sqlalchemy import select
 
 from backend.databases.models import CV, ScheduleConfig
@@ -12,6 +13,7 @@ from backend.scrapers.registry import SCRAPERS
 from core.logging import log_main
 
 JOB_ID = "scheduled_scrape"
+HEARTBEAT_JOB_ID = "_scheduler_heartbeat"
 
 
 def build_trigger(config: ScheduleConfig) -> CronTrigger:
@@ -85,3 +87,18 @@ def configure_job(scheduler: AsyncIOScheduler, app_state, config: ScheduleConfig
             replace_existing=True,
             misfire_grace_time=3600,
         )
+
+
+async def _scheduler_heartbeat() -> None:
+    """No-op job — exists purely so the scheduler re-evaluates its jobs (and
+    re-arms its own wakeup timer) on a short, reliable cadence."""
+    return
+
+
+def start_heartbeat(scheduler: AsyncIOScheduler) -> None:
+    scheduler.add_job(
+        _scheduler_heartbeat,
+        trigger=IntervalTrigger(minutes=5),
+        id=HEARTBEAT_JOB_ID,
+        replace_existing=True,
+    )

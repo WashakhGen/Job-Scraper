@@ -28,10 +28,14 @@ COPY core/ core/
 COPY main.py ./
 COPY --from=frontend /app/frontend/dist frontend/dist
 
-# default data dirs — overridden by DATABASE_URL/CV_UPLOAD_DIR/LOG_DIR at runtime
-# when a volume is mounted elsewhere (see docker-compose.yml)
-RUN mkdir -p media/cvs logs
+RUN useradd --create-home --uid 1000 --shell /bin/sh appuser
+
+
+RUN mkdir -p media/cvs logs && chown -R appuser:appuser /app
+
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 8888
 
-CMD ["python", "main.py"]
+ENTRYPOINT ["docker-entrypoint.sh"]

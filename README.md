@@ -7,10 +7,15 @@
 </p>
 
 <p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+</p>
+
+<p align="center">
   <a href="#getting-started">Getting Started</a> ·
   <a href="#configuration">Configuration</a> ·
   <a href="#supported-sources">Sources</a> ·
-  <a href="#tech-stack">Tech Stack</a>
+  <a href="#tech-stack">Tech Stack</a> ·
+  <a href="#license">License</a>
 </p>
 
 ---
@@ -75,6 +80,9 @@ docker compose up -d --build
 
 The app is now running at `http://localhost:8888`. Redeploying later (`docker compose up -d --build` again) rebuilds the image but keeps your data — it lives in a named volume, not the container.
 
+> [!IMPORTANT]
+> **Authentication is opt-in, off by default.** Set `APP_PASSWORD` in `.env` to require HTTP Basic Auth on every route — the UI and the API alike, via the browser's native login prompt, nothing to build on the frontend side. Leave it unset and there's no auth at all. Either way, `docker-compose.yml` binds the port to `127.0.0.1` so it's only reachable from the machine it runs on — don't change that to `0.0.0.0` or a bare port without setting `APP_PASSWORD` first. To use it from another device, tunnel in: an SSH tunnel, [Tailscale](https://tailscale.com/), or a reverse proxy — never expose the raw port to the internet.
+
 ### Local development (without Docker)
 
 Backend ([uv](https://docs.astral.sh/uv/)):
@@ -105,6 +113,8 @@ All configuration lives in `.env` (see `.env.example` for the full list). The es
 | `APIFY_API_TOKEN` | Powers the LinkedIn/Indeed/Glassdoor scrapers |
 | `MIN_SCORE` | Default minimum match score for a job to be "recommended" (changeable later from the UI) |
 | `UVICORN_PORT` | Port the app is served on |
+| `APP_PASSWORD` | Set to require HTTP Basic Auth on every route. Empty (default) = no auth |
+| `APP_USERNAME` | Username paired with `APP_PASSWORD` (default: `admin`) |
 
 Target locations, active CV, minimum score, and the scrape schedule are all set from the app itself once it's running — they're stored in the database, not `.env`.
 
@@ -123,3 +133,7 @@ Target locations, active CV, minimum score, and the scrape schedule are all set 
 **Backend:** FastAPI, SQLAlchemy (async) + SQLite, APScheduler, LangChain (Gemini / Ollama), Apify client, fpdf2.
 **Frontend:** React, TypeScript, Vite, Tailwind CSS v4.
 **Deploy:** Docker, single container serving both API and built frontend.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

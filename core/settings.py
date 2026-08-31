@@ -29,6 +29,10 @@ class Settings(BaseSettings):
 
     UVICORN_PORT: int = 8888
 
+    # auth — set APP_PASSWORD to require HTTP Basic Auth on every route
+    APP_USERNAME: str = "admin"
+    APP_PASSWORD: str = ""
+
     # logs
     LOG_DIR: str = "./logs"
 

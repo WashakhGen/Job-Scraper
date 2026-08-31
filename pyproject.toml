@@ -1,8 +1,9 @@
 [project]
 name = "job-scrapper"
 version = "0.1.0"
-description = "Add your description here"
+description = "Self-hosted job search pipeline: multi-source scraping, LLM-scored matches, and auto-generated cover letters"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
     "aiosqlite>=0.22.1",
