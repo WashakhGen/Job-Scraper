@@ -61,6 +61,7 @@ No accounts, no SaaS subscription, no third party holding your CV. It runs in on
 - **LLM-scored matches** — every job is scored 0–100 against your CV with an explicit rubric, not keyword matching.
 - **Location-aware, not just keyword-aware** — the scorer reads location text carefully: a job labeled "Remote" but restricted to a specific region/country is correctly treated as unreachable, not a match.
 - **Automatic cover letters** — jobs above your match threshold get a tailored cover letter generated automatically, plus a formatted PDF with your own letterhead details.
+- **Bring your own job** — found something outside the scraped sources — a company site, an email, a friend's referral? Paste the description in, get it scored and a cover letter written immediately, no waiting on a threshold. Lives in its own "My Jobs" tab.
 - **One scrape at a time** — manual and scheduled runs share a lock, so nothing doubles up or wastes API budget.
 - **Live run status** — see at a glance whether a fetch is running now, when the next scheduled one fires, and what just finished.
 - **Multiple CVs** — keep up to a few CVs on hand, switch which one is "active" and driving the pipeline.
@@ -133,6 +134,10 @@ Target locations, active CV, minimum score, and the scrape schedule are all set 
 **Backend:** FastAPI, SQLAlchemy (async) + SQLite, APScheduler, LangChain (Gemini / Ollama), Apify client, fpdf2.
 **Frontend:** React, TypeScript, Vite, Tailwind CSS v4.
 **Deploy:** Docker, single container serving both API and built frontend.
+
+## Contributing
+
+This started as a weekend build, so there's plenty of room to make it better. Found a bug, a missing field, or a source that doesn't work right? Open an issue or send a PR — contributions welcome.
 
 ## License
 
