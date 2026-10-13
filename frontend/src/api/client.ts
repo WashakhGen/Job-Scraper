@@ -95,10 +95,10 @@ export const coverLetterPdfUrl = (jobId: number, cvId?: number) =>
 // ── Settings ────────────────────────────────────────
 export const getSettings = () => request<AppSettings>('/jobs/settings')
 
-export const updateSettings = (minScore: number, locations: string[]) =>
+export const updateSettings = (settings: AppSettings) =>
   request<AppSettings>('/jobs/settings', {
     method: 'PUT',
-    body: JSON.stringify({ min_score: minScore, locations }),
+    body: JSON.stringify(settings),
   })
 
 // ── Schedule ────────────────────────────────────────

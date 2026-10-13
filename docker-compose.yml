@@ -11,6 +11,7 @@ services:
       DATABASE_URL: sqlite:////app/data/jobscrapper.db
       CV_UPLOAD_DIR: /app/data/media/cvs
       LOG_DIR: /app/data/logs
+      TZ: ${TZ:-UTC}
     volumes:
       - job-scrapper-data:/app/data
 

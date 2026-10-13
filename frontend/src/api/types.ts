@@ -58,6 +58,8 @@ export interface JobDetail {
 export interface AppSettings {
   min_score: number
   locations: string[]
+  exclude_keywords: string[]
+  ashby_companies: string[]
 }
 
 export type ScheduleFrequency = 'daily' | 'weekly' | 'monthly'

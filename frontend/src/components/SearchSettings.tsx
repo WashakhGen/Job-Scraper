@@ -2,13 +2,12 @@ import { useEffect, useState } from 'react'
 import { getSettings, updateSettings } from '../api/client'
 import type { AppSettings } from '../api/types'
 import ScoreDial from './ScoreDial'
+import TagListInput from './TagListInput'
 
 export default function SearchSettings() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [editing, setEditing] = useState(false)
-  const [draftLocations, setDraftLocations] = useState<string[]>([])
-  const [draftMinScore, setDraftMinScore] = useState(70)
-  const [newLocation, setNewLocation] = useState('')
+  const [draft, setDraft] = useState<AppSettings | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -20,28 +19,16 @@ export default function SearchSettings() {
 
   function startEditing() {
     if (!settings) return
-    setDraftLocations(settings.locations)
-    setDraftMinScore(settings.min_score)
+    setDraft(settings)
     setEditing(true)
   }
 
-  function addLocation() {
-    const trimmed = newLocation.trim()
-    if (trimmed && !draftLocations.includes(trimmed)) {
-      setDraftLocations([...draftLocations, trimmed])
-    }
-    setNewLocation('')
-  }
-
-  function removeLocation(loc: string) {
-    setDraftLocations(draftLocations.filter((l) => l !== loc))
-  }
-
   async function save() {
+    if (!draft) return
     setBusy(true)
     setError(null)
     try {
-      const updated = await updateSettings(draftMinScore, draftLocations)
+      const updated = await updateSettings(draft)
       setSettings(updated)
       setEditing(false)
     } catch (err) {
@@ -72,55 +59,38 @@ export default function SearchSettings() {
 
       {error && <p className="mt-1 text-xs text-status-danger">{error}</p>}
 
-      {editing ? (
+      {editing && draft ? (
         <div className="mt-4 flex flex-col gap-4">
           <div className="flex flex-col items-center gap-1">
-            <ScoreDial value={draftMinScore} onChange={setDraftMinScore} />
+            <ScoreDial
+              value={draft.min_score}
+              onChange={(min_score) => setDraft({ ...draft, min_score })}
+            />
             <span className="text-xs text-brand-muted">Min match score — drag or scroll the ring</span>
           </div>
 
-          <div>
-            <label className="font-mono text-[11px] font-medium text-brand-muted">Locations</label>
-            <div className="mt-1 flex flex-wrap gap-1.5">
-              {draftLocations.map((loc) => (
-                <span
-                  key={loc}
-                  className="flex items-center gap-1 rounded border border-brand-border bg-brand-surface px-2 py-1 font-mono text-xs font-medium text-brand-teal"
-                >
-                  {loc}
-                  <button
-                    type="button"
-                    onClick={() => removeLocation(loc)}
-                    className="text-brand-muted hover:text-status-danger"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-            <div className="mt-2 flex gap-2">
-              <input
-                type="text"
-                value={newLocation}
-                onChange={(e) => setNewLocation(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addLocation()
-                  }
-                }}
-                placeholder="e.g. Islamabad, Remote"
-                className="flex-1 rounded border border-brand-border bg-brand-surface p-1.5 text-xs focus:border-brand-coral focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={addLocation}
-                className="rounded border border-brand-border px-2 text-xs font-medium hover:border-brand-teal hover:text-brand-teal"
-              >
-                Add
-              </button>
-            </div>
-          </div>
+          <TagListInput
+            label="Locations"
+            placeholder="e.g. Islamabad, Remote"
+            values={draft.locations}
+            onChange={(locations) => setDraft({ ...draft, locations })}
+          />
+
+          <TagListInput
+            label="Exclude Keywords"
+            hint="Jobs whose title/description match any of these are filtered out before scoring — e.g. unwanted seniority levels"
+            placeholder="e.g. Internship, Principal"
+            values={draft.exclude_keywords}
+            onChange={(exclude_keywords) => setDraft({ ...draft, exclude_keywords })}
+          />
+
+          <TagListInput
+            label="Ashby Companies"
+            hint="AshbyHQ has no job search — only per-company boards. Add the slug from jobs.ashbyhq.com/<slug>"
+            placeholder="e.g. ramp, linear"
+            values={draft.ashby_companies}
+            onChange={(ashby_companies) => setDraft({ ...draft, ashby_companies })}
+          />
 
           <div className="flex gap-2">
             <button
@@ -157,6 +127,18 @@ export default function SearchSettings() {
               ))
             )}
           </div>
+          {settings.exclude_keywords.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {settings.exclude_keywords.map((kw) => (
+                <span
+                  key={kw}
+                  className="rounded border border-status-danger/30 bg-status-danger-bg px-2 py-1 font-mono text-xs font-medium text-status-danger"
+                >
+                  –{kw}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

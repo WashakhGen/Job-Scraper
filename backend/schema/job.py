@@ -21,6 +21,8 @@ class JobOut(BaseModel):
 class AppSettingsOut(BaseModel):
     min_score: int
     locations: list[str]
+    exclude_keywords: list[str] = []
+    ashby_companies: list[str] = []
 
 
 class ManualJobCreate(BaseModel):

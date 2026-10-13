@@ -70,6 +70,8 @@ class AppSettings(Base):
     id: Mapped[int] = mapped_column(primary_key=True, default=1)
     min_score: Mapped[int] = mapped_column(Integer, default=SETTINGS.MIN_SCORE)
     locations: Mapped[list[str]] = mapped_column(JSON, default=list)
+    exclude_keywords: Mapped[list[str]] = mapped_column(JSON, default=list)
+    ashby_companies: Mapped[list[str]] = mapped_column(JSON, default=list)
 
 
 class ScheduleConfig(Base):

@@ -373,6 +373,8 @@ async def update_settings(body: AppSettingsOut, db: Annotated[AsyncSession, Depe
     settings_row = await get_app_settings(db)
     settings_row.min_score = body.min_score
     settings_row.locations = body.locations
+    settings_row.exclude_keywords = body.exclude_keywords
+    settings_row.ashby_companies = body.ashby_companies
     await db.commit()
     await db.refresh(settings_row)
     return settings_row

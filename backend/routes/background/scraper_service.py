@@ -6,8 +6,18 @@ from backend.databases.utils import get_app_settings, save_jobs
 from backend.llm.cover_letter import generate_cover_letter
 from backend.llm.scoring import score_jobs
 from backend.routes.api.cv import _get_or_create_markdown
+from backend.scrapers.base import RawJob
 from backend.scrapers.registry import SCRAPERS
 from core.logging import log_main
+
+
+def _excluded(job: RawJob, exclude_keywords: list[str]) -> bool:
+    """True if the job's title/description contains any configured
+    exclude keyword (e.g. "Internship", "Principal") — case-insensitive
+    substring match, same style as the keyword-matching the free-source
+    adapters (RemoteOK, Remotive) already do."""
+    haystack = f"{job.title} {job.description}".lower()
+    return any(kw.strip().lower() in haystack for kw in exclude_keywords if kw.strip())
 
 
 async def _run_scrape_all(app_state, cv_id: int, location: str | None, limit: int) -> None:
@@ -101,7 +111,13 @@ async def _run_scrape_internal(
     adapter_cls = SCRAPERS[source]
     log_main(f"Scrapping Jobs from {adapter_cls}")
     client = app_state.apify_client if adapter_cls.client_kind == "apify" else app_state.http_client
-    adapter = adapter_cls(client=client)  # pyright: ignore[reportCallIssue]  # ty: ignore[unknown-argument]
+    adapter_kwargs: dict = {"client": client}
+    if source == "ashby":
+        # Ashby has no keyword-searchable aggregator — it only exposes one
+        # company's board per request — so it needs the configured slug
+        # list, unlike every other adapter which just gets a client
+        adapter_kwargs["companies"] = app_settings.ashby_companies
+    adapter = adapter_cls(**adapter_kwargs)  # pyright: ignore[reportCallIssue]  # ty: ignore[unknown-argument]
 
     # 4. Fetch jobs
     jobs = await adapter.fetch(
@@ -110,6 +126,15 @@ async def _run_scrape_internal(
         limit,
     )
     log_main(f"{source}: fetched {len(jobs)} jobs")
+
+    if not jobs:
+        return
+
+    if app_settings.exclude_keywords:
+        before = len(jobs)
+        jobs = [j for j in jobs if not _excluded(j, app_settings.exclude_keywords)]
+        if before != len(jobs):
+            log_main(f"{source}: excluded {before - len(jobs)} jobs matching exclude keywords")
 
     if not jobs:
         return
