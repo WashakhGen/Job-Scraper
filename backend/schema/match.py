@@ -18,10 +18,15 @@ class JobRecommendation(BaseModel):
     cover_letter: str | None
     scored_at: datetime
     applied: bool
+    dismissed: bool
 
 
 class AppliedUpdate(BaseModel):
     applied: bool
+
+
+class DismissUpdate(BaseModel):
+    dismissed: bool
 
 
 class JobDetail(BaseModel):

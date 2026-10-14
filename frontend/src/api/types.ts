@@ -34,6 +34,7 @@ export interface JobRecommendation {
   cover_letter: string | null
   scored_at: string
   applied: boolean
+  dismissed: boolean
 }
 
 export interface JobDetail {

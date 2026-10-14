@@ -29,6 +29,10 @@ export default function Recommended() {
     }
   }
 
+  function handleDismiss(jobId: number) {
+    setJobs((prev) => prev?.filter((j) => j.job_id !== jobId) ?? prev)
+  }
+
   return (
     <div className="p-6">
       <div className="mb-3 flex items-baseline gap-2">
@@ -57,6 +61,7 @@ export default function Recommended() {
                 applied: job.applied,
               }}
               onAppliedChange={handleAppliedChange}
+              onDismiss={handleDismiss}
               index={i}
             />
           ))}

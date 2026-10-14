@@ -16,7 +16,7 @@ from backend.llm.cover_letter import generate_cover_letter
 from backend.llm.scoring import score_match
 from backend.routes.api.cv import _get_or_create_markdown
 from backend.schema.job import AppSettingsOut, JobOut, ManualJobCreate
-from backend.schema.match import AppliedUpdate, JobDetail, JobRecommendation
+from backend.schema.match import AppliedUpdate, DismissUpdate, JobDetail, JobRecommendation
 from core.pdf import build_pdf, cover_letter_to_html
 
 router = APIRouter(tags=["jobs"])
@@ -51,6 +51,7 @@ def _to_recommendation(job: JobPosting, match: MatchResult) -> JobRecommendation
         cover_letter=match.cover_letter,
         scored_at=match.created_at,
         applied=match.applied,
+        dismissed=match.dismissed,
     )
 
 
@@ -85,8 +86,18 @@ async def _resolve_cv_id(db: AsyncSession, cv_id: int | None) -> int:
 
 
 @router.get("", response_model=list[JobOut])
-async def list_jobs(db: Annotated[AsyncSession, Depends(get_db)]):
-    result = await db.scalars(select(JobPosting).order_by(JobPosting.posted_at.desc()))
+async def list_jobs(db: Annotated[AsyncSession, Depends(get_db)], cv_id: int | None = None):
+    query = select(JobPosting).order_by(JobPosting.posted_at.desc())
+    try:
+        resolved_cv_id = await _resolve_cv_id(db, cv_id)
+    except HTTPException:
+        resolved_cv_id = None
+    if resolved_cv_id is not None:
+        dismissed_job_ids = select(MatchResult.job_id).where(
+            MatchResult.cv_id == resolved_cv_id, MatchResult.dismissed.is_(True)
+        )
+        query = query.where(JobPosting.id.notin_(dismissed_job_ids))
+    result = await db.scalars(query)
     return result.all()
 
 
@@ -105,6 +116,7 @@ async def list_recommended_jobs(
             MatchResult.cv_id == cv_id,
             MatchResult.score >= app_settings.min_score,
             MatchResult.applied.is_(False),
+            MatchResult.dismissed.is_(False),
         )
         .order_by(MatchResult.score.desc(), JobPosting.posted_at.desc())
     )
@@ -178,6 +190,41 @@ async def mark_applied(
 
     match.applied = body.applied
     match.applied_at = datetime.now(UTC) if body.applied else None
+    await db.commit()
+    await db.refresh(match)
+    return _to_recommendation(job, match)
+
+
+@router.put("/{job_id}/dismiss", response_model=JobRecommendation)
+async def dismiss_job(
+    job_id: int,
+    body: DismissUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cv_id: int | None = None,
+):
+    """Hide a job from Recommended/Home without deleting it — per-CV, same
+    as applied, so switching CVs doesn't carry over an unrelated dismissal."""
+    job = await db.get(JobPosting, job_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Job not found")
+
+    cv_id = await _resolve_cv_id(db, cv_id)
+    match = await db.scalar(
+        select(MatchResult).where(MatchResult.job_id == job_id, MatchResult.cv_id == cv_id)
+    )
+    if match is None:
+        match = MatchResult(
+            cv_id=cv_id,
+            job_id=job_id,
+            score=0,
+            rationale="Dismissed manually — not scored by the pipeline.",
+            matched=[],
+            missing=[],
+        )
+        db.add(match)
+
+    match.dismissed = body.dismissed
+    match.dismissed_at = datetime.now(UTC) if body.dismissed else None
     await db.commit()
     await db.refresh(match)
     return _to_recommendation(job, match)

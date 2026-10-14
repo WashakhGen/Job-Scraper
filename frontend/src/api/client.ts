@@ -49,7 +49,8 @@ export const updateProfile = (profile: CandidateProfile) =>
   })
 
 // ── Jobs ────────────────────────────────────────────
-export const listJobs = () => request<JobOut[]>('/jobs')
+export const listJobs = (cvId?: number) =>
+  request<JobOut[]>(`/jobs${cvId ? `?cv_id=${cvId}` : ''}`)
 
 export const listRecommended = (cvId?: number) =>
   request<JobRecommendation[]>(`/jobs/recommended${cvId ? `?cv_id=${cvId}` : ''}`)
@@ -67,6 +68,12 @@ export const setApplied = (jobId: number, applied: boolean) =>
   request<JobRecommendation>(`/jobs/${jobId}/applied`, {
     method: 'PUT',
     body: JSON.stringify({ applied }),
+  })
+
+export const setDismissed = (jobId: number, dismissed: boolean) =>
+  request<JobRecommendation>(`/jobs/${jobId}/dismiss`, {
+    method: 'PUT',
+    body: JSON.stringify({ dismissed }),
   })
 
 export const generateCoverLetter = (jobId: number, cvId?: number) =>

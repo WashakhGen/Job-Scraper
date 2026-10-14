@@ -71,6 +71,11 @@ export default function Home() {
     setAppliedOverrides((prev) => ({ ...prev, [jobId]: applied }))
   }
 
+  function handleDismiss(jobId: number) {
+    setRecommended((prev) => prev?.filter((j) => j.job_id !== jobId) ?? prev)
+    setAllJobs((prev) => prev?.filter((j) => j.id !== jobId) ?? prev)
+  }
+
   return (
     <div className="p-6">
       <section>
@@ -86,6 +91,7 @@ export default function Home() {
                 key={job.job_id}
                 job={toCard(job, appliedOverrides[job.job_id])}
                 onAppliedChange={handleAppliedChange}
+                onDismiss={handleDismiss}
                 index={i}
               />
             ))}
@@ -106,6 +112,7 @@ export default function Home() {
                 key={job.id}
                 job={toCard(job, appliedOverrides[job.id])}
                 onAppliedChange={handleAppliedChange}
+                onDismiss={handleDismiss}
                 index={i}
               />
             ))}

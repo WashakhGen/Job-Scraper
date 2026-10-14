@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { setApplied } from '../api/client'
+import { setApplied, setDismissed } from '../api/client'
 import { matchLabel, scoreTone, timeAgo } from '../lib/format'
 import StatusPill from './StatusPill'
 
@@ -18,8 +18,17 @@ export interface CardJob {
 interface Props {
   job: CardJob
   onAppliedChange?: (jobId: number, applied: boolean) => void
+  onDismiss?: (jobId: number) => void
   /** grid position — drives the check-in stagger, purely cosmetic */
   index?: number
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth={2}>
+      <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
 }
 
 function TagIcon() {
@@ -53,9 +62,10 @@ function PinIcon() {
   )
 }
 
-export default function JobCard({ job, onAppliedChange, index = 0 }: Props) {
+export default function JobCard({ job, onAppliedChange, onDismiss, index = 0 }: Props) {
   const navigate = useNavigate()
   const [marking, setMarking] = useState(false)
+  const [dismissing, setDismissing] = useState(false)
 
   function goToDetail() {
     navigate(`/job/${job.id}`)
@@ -70,6 +80,17 @@ export default function JobCard({ job, onAppliedChange, index = 0 }: Props) {
       onAppliedChange?.(job.id, next)
     } finally {
       setMarking(false)
+    }
+  }
+
+  async function handleDismiss(e: React.MouseEvent) {
+    e.stopPropagation()
+    setDismissing(true)
+    try {
+      await setDismissed(job.id, true)
+      onDismiss?.(job.id)
+    } finally {
+      setDismissing(false)
     }
   }
 
@@ -91,6 +112,18 @@ export default function JobCard({ job, onAppliedChange, index = 0 }: Props) {
         <div className="absolute -left-9 top-3 -rotate-45 bg-status-success px-9 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wide text-white shadow-sm">
           Applied
         </div>
+      )}
+
+      {onDismiss && (
+        <button
+          type="button"
+          onClick={handleDismiss}
+          disabled={dismissing}
+          title="Not interested — hide this job"
+          className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-brand-border bg-white/70 text-brand-muted opacity-0 backdrop-blur-sm transition hover:border-status-danger hover:text-status-danger disabled:opacity-50 group-hover:opacity-100"
+        >
+          <CloseIcon />
+        </button>
       )}
 
       <h3 className="line-clamp-2 min-h-11 font-semibold leading-snug text-brand-text">{job.title}</h3>

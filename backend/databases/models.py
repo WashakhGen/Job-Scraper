@@ -63,6 +63,8 @@ class MatchResult(Base):
     cover_letter: Mapped[str | None] = mapped_column(Text, nullable=True)
     applied: Mapped[bool] = mapped_column(default=False)
     applied_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    dismissed: Mapped[bool] = mapped_column(default=False)
+    dismissed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class AppSettings(Base):
