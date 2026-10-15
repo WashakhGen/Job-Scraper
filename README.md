@@ -20,7 +20,7 @@
 
 ---
 
-Job Scraper is a self-hosted job search pipeline: it scrapes listings from multiple job boards on a schedule (or on demand), scores each one against your CV with an LLM, and surfaces only the jobs that are a genuine skills match **and** geographically reachable — on-site/hybrid in a target city, or truly open remote, not remote-but-region-restricted. For anything above your match threshold, it drafts a tailored cover letter automatically, ready to copy or download as a formatted PDF.
+Job Scraper is a self-hosted job search pipeline: it scrapes listings from multiple job boards on a schedule (or on demand), scores each one against your CV with an LLM, and surfaces only the jobs that are a genuine skills match **and** geographically reachable — on-site/hybrid in a target city, or truly open remote, not remote-but-region-restricted. For any job you open, generate a cover letter or a tailored CV on demand, ready to copy or download as a formatted PDF.
 
 No accounts, no SaaS subscription, no third party holding your CV. It runs in one container, on your own machine or server, config lives in `.env`.
 
@@ -57,16 +57,18 @@ No accounts, no SaaS subscription, no third party holding your CV. It runs in on
 
 ## Features
 
-- **Multi-source scraping** — LinkedIn, Indeed, Glassdoor, RemoteOK, and Remotive, triggered on demand or on a schedule (daily/weekly/monthly, specific time).
+- **Multi-source scraping** — LinkedIn, Indeed, Glassdoor, RemoteOK, Remotive, and AshbyHQ (per-company boards you add by slug), triggered on demand or on a schedule (daily/weekly/monthly, specific time).
 - **LLM-scored matches** — every job is scored 0–100 against your CV with an explicit rubric, not keyword matching.
 - **Location-aware, not just keyword-aware** — the scorer reads location text carefully: a job labeled "Remote" but restricted to a specific region/country is correctly treated as unreachable, not a match.
-- **Automatic cover letters** — jobs above your match threshold get a tailored cover letter generated automatically, plus a formatted PDF with your own letterhead details.
-- **Bring your own job** — found something outside the scraped sources — a company site, an email, a friend's referral? Paste the description in, get it scored and a cover letter written immediately, no waiting on a threshold. Lives in its own "My Jobs" tab.
+- **Exclude keywords** — filter out noise (e.g. "Internship", "Principal") before it's even scored, not just scored low.
+- **On-demand cover letters & tailored CVs** — nothing is generated automatically during scraping. Open any job and click to generate a cover letter, or a CV reworded to foreground that job's own keywords while keeping your original's exact layout, sections, and facts — both downloadable as formatted PDFs. See [Tailored CV generation](#tailored-cv-generation) below.
+- **Not interested? Dismiss it** — a job you don't want cluttering Recommended or Home hides with one click, per-CV, without deleting it.
+- **Bring your own job** — found something outside the scraped sources — a company site, an email, a friend's referral? Paste the description in, get it scored immediately, no waiting on a threshold. Lives in its own "My Jobs" tab.
 - **One scrape at a time** — manual and scheduled runs share a lock, so nothing doubles up or wastes API budget.
 - **Live run status** — see at a glance whether a fetch is running now, when the next scheduled one fires, and what just finished.
 - **Multiple CVs** — keep up to a few CVs on hand, switch which one is "active" and driving the pipeline.
-- **Runtime-configurable** — target locations, minimum match score, schedule, and CV are all settings you change from the UI, never hardcoded.
-- **Bring your own LLM** — Gemini or a local Ollama model, swappable via config.
+- **Runtime-configurable** — target locations, minimum match score, exclude keywords, Ashby companies, schedule, and CV are all settings you change from the UI, never hardcoded.
+- **Bring your own LLM** — Gemini or a local Ollama model, swappable via config, for scoring and cover letters. Tailored CVs use your Claude Pro/Max subscription instead (see below).
 
 ## Getting Started
 
@@ -83,6 +85,16 @@ The app is now running at `http://localhost:8888`. Redeploying later (`docker co
 
 > [!IMPORTANT]
 > **Authentication is opt-in, off by default.** Set `APP_PASSWORD` in `.env` to require HTTP Basic Auth on every route — the UI and the API alike, via the browser's native login prompt, nothing to build on the frontend side. Leave it unset and there's no auth at all. Either way, `docker-compose.yml` binds the port to `127.0.0.1` so it's only reachable from the machine it runs on — don't change that to `0.0.0.0` or a bare port without setting `APP_PASSWORD` first. To use it from another device, tunnel in: an SSH tunnel, [Tailscale](https://tailscale.com/), or a reverse proxy — never expose the raw port to the internet.
+
+### Tailored CV generation
+
+Tailored CVs run on your own **Claude Pro/Max subscription** (via the `claude` CLI in headless mode), not a pay-per-token API key — the container has Node and the CLI installed, but needs to be logged in once:
+
+```bash
+docker exec -it -u appuser job-scrapper claude login
+```
+
+That login persists in its own `claude-config` Docker volume (separate from your host's own Claude Code login — macOS keeps that in Keychain, which a container can't read), so you only do this once per machine, not per rebuild. Skip this and the "Generate Tailored CV" button will return a clear "Claude not configured" error instead of failing silently — scraping, scoring, and cover letters are unaffected either way, since those use Gemini/Ollama, not Claude.
 
 ### Local development (without Docker)
 
@@ -128,10 +140,11 @@ Target locations, active CV, minimum score, and the scrape schedule are all set 
 | Glassdoor | Apify actor |
 | RemoteOK | Direct API |
 | Remotive | Direct API |
+| AshbyHQ | Direct API, per-company board (add the company slug from `jobs.ashbyhq.com/<slug>`) |
 
 ## Tech Stack
 
-**Backend:** FastAPI, SQLAlchemy (async) + SQLite, APScheduler, LangChain (Gemini / Ollama), Apify client, fpdf2.
+**Backend:** FastAPI, SQLAlchemy (async) + SQLite, APScheduler, LangChain (Gemini / Ollama), Claude Code CLI (tailored CVs), Apify client, fpdf2 (cover letters), weasyprint (tailored CVs), pymupdf.
 **Frontend:** React, TypeScript, Vite, Tailwind CSS v4.
 **Deploy:** Docker, single container serving both API and built frontend.
 

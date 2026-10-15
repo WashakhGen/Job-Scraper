@@ -61,6 +61,7 @@ class MatchResult(Base):
     matched: Mapped[list[str]] = mapped_column(JSON, default=list)
     missing: Mapped[list[str]] = mapped_column(JSON, default=list)
     cover_letter: Mapped[str | None] = mapped_column(Text, nullable=True)
+    tailored_cv: Mapped[str | None] = mapped_column(Text, nullable=True)
     applied: Mapped[bool] = mapped_column(default=False)
     applied_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     dismissed: Mapped[bool] = mapped_column(default=False)

@@ -81,6 +81,14 @@ export const generateCoverLetter = (jobId: number, cvId?: number) =>
     method: 'POST',
   })
 
+export const generateTailoredCv = (jobId: number, cvId?: number) =>
+  request<JobDetail>(`/jobs/${jobId}/tailored-cv${cvId ? `?cv_id=${cvId}` : ''}`, {
+    method: 'POST',
+  })
+
+export const tailoredCvPdfUrl = (jobId: number, cvId?: number) =>
+  `/api/jobs/${jobId}/tailored-cv.pdf${cvId ? `?cv_id=${cvId}` : ''}`
+
 export interface ManualJobInput {
   title: string
   company: string

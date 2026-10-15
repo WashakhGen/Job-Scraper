@@ -12,12 +12,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.databases.models import CV, JobPosting, MatchResult
 from backend.databases.session import get_db
 from backend.databases.utils import get_app_settings, get_candidate_profile
+from backend.llm.claude_cli import ClaudeNotConfiguredError
 from backend.llm.cover_letter import generate_cover_letter
 from backend.llm.scoring import score_match
-from backend.routes.api.cv import _get_or_create_markdown
+from backend.llm.tailored_cv import tailor_cv
+from backend.routes.api.cv import get_or_create_links, get_or_create_markdown
 from backend.schema.job import AppSettingsOut, JobOut, ManualJobCreate
 from backend.schema.match import AppliedUpdate, DismissUpdate, JobDetail, JobRecommendation
 from core.pdf import build_pdf, cover_letter_to_html
+from core.tailored_cv_pdf import build_tailored_cv_pdf
 
 router = APIRouter(tags=["jobs"])
 
@@ -49,6 +52,7 @@ def _to_recommendation(job: JobPosting, match: MatchResult) -> JobRecommendation
         matched=match.matched,
         missing=match.missing,
         cover_letter=match.cover_letter,
+        tailored_cv=match.tailored_cv,
         scored_at=match.created_at,
         applied=match.applied,
         dismissed=match.dismissed,
@@ -71,6 +75,7 @@ def _to_detail(job: JobPosting, match: MatchResult | None) -> JobDetail:
         matched=match.matched if match else [],
         missing=match.missing if match else [],
         cover_letter=match.cover_letter if match else None,
+        tailored_cv=match.tailored_cv if match else None,
         applied=match.applied if match else False,
         scored_at=match.created_at if match else None,
     )
@@ -242,7 +247,7 @@ async def create_manual_job(
     if cv is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "CV not found")
 
-    cv_text = _get_or_create_markdown(Path(cv.file_path))
+    cv_text = get_or_create_markdown(Path(cv.file_path))
     app_settings = await get_app_settings(db)
 
     job = JobPosting(
@@ -335,7 +340,7 @@ async def generate_job_cover_letter(
     if cv is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "CV not found")
 
-    cv_text = _get_or_create_markdown(Path(cv.file_path))
+    cv_text = get_or_create_markdown(Path(cv.file_path))
 
     match = await db.scalar(
         select(MatchResult).where(MatchResult.job_id == job_id, MatchResult.cv_id == cv_id)
@@ -373,6 +378,101 @@ async def generate_job_cover_letter(
     await db.commit()
     await db.refresh(match)
     return _to_detail(job, match)
+
+
+@router.post("/{job_id}/tailored-cv", response_model=JobDetail)
+async def generate_tailored_cv(
+    job_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cv_id: int | None = None,
+):
+    """Generate  a CV tailored to this job"""
+    job = await db.get(JobPosting, job_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Job not found")
+
+    cv_id = await _resolve_cv_id(db, cv_id)
+    cv = await db.get(CV, cv_id)
+    if cv is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "CV not found")
+
+    cv_text = get_or_create_markdown(Path(cv.file_path))
+
+    match = await db.scalar(
+        select(MatchResult).where(MatchResult.job_id == job_id, MatchResult.cv_id == cv_id)
+    )
+    if match is None:
+        app_settings = await get_app_settings(db)
+        result = await _call_llm_or_502(
+            score_match(
+                cv_text=cv_text,
+                job_title=job.title,
+                job_description=job.description or "",
+                job_location=job.location or "",
+                target_locations=app_settings.locations,
+            )
+        )
+        match = MatchResult(
+            cv_id=cv_id,
+            job_id=job_id,
+            score=result.score,
+            rationale=result.rationale,
+            matched=result.matched,
+            missing=result.missing,
+        )
+        db.add(match)
+
+    try:
+        match.tailored_cv = await tailor_cv(
+            cv_markdown=cv_text,
+            job_title=job.title,
+            company=job.company,
+            job_description=job.description or "",
+        )
+    except ClaudeNotConfiguredError as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            f"Claude not configured: {exc}",
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            f"Claude didn't return a usable response ({type(exc).__name__}). Try again.",
+        ) from exc
+    await db.commit()
+    await db.refresh(match)
+    return _to_detail(job, match)
+
+
+@router.get("/{job_id}/tailored-cv.pdf")
+async def download_tailored_cv_pdf(
+    job_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cv_id: int | None = None,
+):
+    job = await db.get(JobPosting, job_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Job not found")
+
+    cv_id = await _resolve_cv_id(db, cv_id)
+    match = await db.scalar(
+        select(MatchResult).where(MatchResult.job_id == job_id, MatchResult.cv_id == cv_id)
+    )
+    if match is None or not match.tailored_cv:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No tailored CV generated yet for this job")
+
+    cv = await db.get(CV, cv_id)
+    if cv is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "CV not found")
+    link_map = get_or_create_links(Path(cv.file_path))
+
+    pdf_bytes = build_tailored_cv_pdf(match.tailored_cv, link_map)
+    filename = f"CV - {job.company}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.get("/{job_id}/cover-letter.pdf")

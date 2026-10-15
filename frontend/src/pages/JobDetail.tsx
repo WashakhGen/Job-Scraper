@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useNavigate, useParams } from 'react-router-dom'
-import { coverLetterPdfUrl, generateCoverLetter, getJobDetail, setApplied } from '../api/client'
+import {
+  coverLetterPdfUrl,
+  generateCoverLetter,
+  generateTailoredCv,
+  getJobDetail,
+  setApplied,
+  tailoredCvPdfUrl,
+} from '../api/client'
 import type { JobDetail as JobDetailType } from '../api/types'
 import { matchLabel, timeAgo } from '../lib/format'
 import ScoreRing from '../components/ScoreRing'
@@ -17,6 +24,17 @@ const markdownComponents = {
     <ul className="mb-3 list-disc space-y-1 pl-5">{children}</ul>
   ),
   li: ({ children }: { children?: React.ReactNode }) => <li>{children}</li>,
+  h1: ({ children }: { children?: React.ReactNode }) => (
+    <h1 className="mb-2 text-base font-bold text-brand-text">{children}</h1>
+  ),
+  h2: ({ children }: { children?: React.ReactNode }) => (
+    <h2 className="mb-2 mt-4 font-mono text-[11px] font-semibold uppercase tracking-wide text-brand-muted">
+      {children}
+    </h2>
+  ),
+  h3: ({ children }: { children?: React.ReactNode }) => (
+    <h3 className="mb-1 mt-2 text-sm font-semibold text-brand-text">{children}</h3>
+  ),
 }
 
 function Panel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -43,6 +61,8 @@ export default function JobDetail() {
   const [marking, setMarking] = useState(false)
   const [copied, setCopied] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [tailoring, setTailoring] = useState(false)
+  const [tailorError, setTailorError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -78,6 +98,20 @@ export default function JobDetail() {
       setJob(updated)
     } finally {
       setGenerating(false)
+    }
+  }
+
+  async function handleGenerateTailoredCv() {
+    if (!job) return
+    setTailoring(true)
+    setTailorError(null)
+    try {
+      const updated = await generateTailoredCv(job.job_id)
+      setJob(updated)
+    } catch (err) {
+      setTailorError(err instanceof Error ? err.message : 'Failed to generate tailored CV')
+    } finally {
+      setTailoring(false)
     }
   }
 
@@ -163,6 +197,52 @@ export default function JobDetail() {
                   'Generate Cover Letter'
                 )}
               </button>
+            </Panel>
+          )}
+
+          {job.tailored_cv ? (
+            <Panel className="border-brand-teal bg-brand-teal/5">
+              <div className="flex items-center justify-between">
+                <PanelTitle>Tailored CV</PanelTitle>
+                <button
+                  type="button"
+                  onClick={handleGenerateTailoredCv}
+                  disabled={tailoring}
+                  className="text-xs font-medium text-brand-teal hover:underline disabled:opacity-50"
+                >
+                  {tailoring ? '…' : 'Regenerate'}
+                </button>
+              </div>
+              {tailorError && <p className="mt-2 text-xs text-status-danger">{tailorError}</p>}
+              <div className="mt-3 text-sm leading-relaxed text-brand-text">
+                <ReactMarkdown components={markdownComponents}>{job.tailored_cv}</ReactMarkdown>
+              </div>
+              <a
+                href={tailoredCvPdfUrl(job.job_id)}
+                className="mt-4 inline-block rounded-md border border-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-teal transition hover:bg-brand-teal hover:text-white"
+              >
+                Download PDF
+              </a>
+            </Panel>
+          ) : (
+            <Panel className="text-center">
+              <p className="text-sm text-brand-muted">
+                No tailored CV yet — generate one that foregrounds the keywords this job matched
+                on, via your Claude subscription.
+              </p>
+              <button
+                type="button"
+                onClick={handleGenerateTailoredCv}
+                disabled={tailoring}
+                className="mt-3 inline-flex items-center justify-center rounded-md bg-brand-teal px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-teal-dark disabled:opacity-50"
+              >
+                {tailoring ? (
+                  <StepLoader steps={['Reading your CV…', 'Tailoring content…']} active={tailoring} />
+                ) : (
+                  'Generate Tailored CV'
+                )}
+              </button>
+              {tailorError && <p className="mt-2 text-xs text-status-danger">{tailorError}</p>}
             </Panel>
           )}
 

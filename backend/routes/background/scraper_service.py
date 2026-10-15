@@ -3,9 +3,8 @@ from pathlib import Path
 from backend.databases.models import CV, MatchResult
 from backend.databases.session import AsyncSessionLocal
 from backend.databases.utils import get_app_settings, save_jobs
-from backend.llm.cover_letter import generate_cover_letter
 from backend.llm.scoring import score_jobs
-from backend.routes.api.cv import _get_or_create_markdown
+from backend.routes.api.cv import get_or_create_markdown
 from backend.scrapers.base import RawJob
 from backend.scrapers.registry import SCRAPERS
 from core.logging import log_main
@@ -101,7 +100,7 @@ async def _run_scrape_internal(
 
     # 2. Get CV text
     log_main("Getting Data from CV")
-    cv_text = _get_or_create_markdown(Path(active_cv.file_path))
+    cv_text = get_or_create_markdown(Path(active_cv.file_path))
 
     async with AsyncSessionLocal() as session:
         app_settings = await get_app_settings(session)
@@ -166,19 +165,7 @@ async def _run_scrape_internal(
     log_main("Saving Matched Jobs")
     async with AsyncSessionLocal() as session:
         for job, match_data in match_results:
-            cover_letter = None
-            if match_data.score >= app_settings.min_score:
-                try:
-                    cover_letter = await generate_cover_letter(
-                        cv_text=cv_text,
-                        job_title=job.title,
-                        company=job.company,
-                        matched=match_data.matched,
-                        missing=match_data.missing,
-                    )
-                except Exception as exc:
-                    log_main(f"Cover letter failed for job {job.id}: {type(exc).__name__}: {exc}")
-
+            # cover letter / tailored CV are generated on-demand
             match_entry = MatchResult(
                 cv_id=cv_id,
                 job_id=job.id,
@@ -186,7 +173,6 @@ async def _run_scrape_internal(
                 rationale=match_data.rationale,
                 matched=match_data.matched,
                 missing=match_data.missing,
-                cover_letter=cover_letter,
             )
 
             session.add(match_entry)

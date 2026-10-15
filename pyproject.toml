@@ -26,6 +26,7 @@ dependencies = [
     "sqlalchemy>=2.0.52",
     "tzlocal>=5.4.4",
     "uvicorn[standard]>=0.52.4",
+    "weasyprint>=70.0",
 ]
 
 [dependency-groups]

@@ -16,6 +16,7 @@ class JobRecommendation(BaseModel):
     matched: list[str]
     missing: list[str]
     cover_letter: str | None
+    tailored_cv: str | None
     scored_at: datetime
     applied: bool
     dismissed: bool
@@ -46,5 +47,6 @@ class JobDetail(BaseModel):
     matched: list[str] = []
     missing: list[str] = []
     cover_letter: str | None = None
+    tailored_cv: str | None = None
     applied: bool = False
     scored_at: datetime | None = None

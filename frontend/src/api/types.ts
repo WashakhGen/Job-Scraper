@@ -32,6 +32,7 @@ export interface JobRecommendation {
   matched: string[]
   missing: string[]
   cover_letter: string | null
+  tailored_cv: string | null
   scored_at: string
   applied: boolean
   dismissed: boolean
@@ -52,6 +53,7 @@ export interface JobDetail {
   matched: string[]
   missing: string[]
   cover_letter: string | null
+  tailored_cv: string | null
   applied: boolean
   scored_at: string | null
 }

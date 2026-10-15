@@ -1,8 +1,10 @@
 import hashlib
+import json
 import uuid
 from pathlib import Path
 from typing import Annotated
 
+import pymupdf
 import pymupdf4llm
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy import func, select, update
@@ -22,7 +24,7 @@ MAX_CVS = SETTINGS.MAX_CVS
 UPLOAD_DIR = Path(SETTINGS.CV_UPLOAD_DIR)
 
 
-def _get_or_create_markdown(pdf_path: Path) -> str:
+def get_or_create_markdown(pdf_path: Path) -> str:
     md_path = pdf_path.with_suffix(".md")
     if md_path.exists():
         return md_path.read_text()
@@ -30,6 +32,29 @@ def _get_or_create_markdown(pdf_path: Path) -> str:
     assert isinstance(markdown, str)  # page_chunks=False guarantees str, not list[dict]
     md_path.write_text(markdown)
     return markdown
+
+
+def get_or_create_links(pdf_path: Path) -> dict[str, list[str]]:
+    """Maps the visible text of each hyperlink in the original CV PDF"""
+    links_path = pdf_path.with_suffix(".links.json")
+    if links_path.exists():
+        return json.loads(links_path.read_text())
+
+    link_map: dict[str, list[str]] = {}
+    with pymupdf.open(str(pdf_path)) as doc:
+        for page in doc:
+            for link in page.get_links():
+                uri = link.get("uri")
+                if not uri:
+                    continue
+                text = page.get_textbox(link["from"]).replace("​", "").strip()
+                # trailing ":" belongs to the body text, not the link
+                text = text.rstrip(":").strip()
+                if text:
+                    link_map.setdefault(text, []).append(uri)
+
+    links_path.write_text(json.dumps(link_map))
+    return link_map
 
 
 @router.post("", response_model=CVOut)
@@ -53,7 +78,7 @@ async def upload_cv(file: UploadFile, db: Annotated[AsyncSession, Depends(get_db
     file_path.write_bytes(contents)
 
     try:
-        raw_text = _get_or_create_markdown(
+        raw_text = get_or_create_markdown(
             file_path
         )  # writes {uuid}.md, only regenerates if missing
         keywords = await extract_keywords(raw_text)
