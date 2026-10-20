@@ -92,6 +92,14 @@ export default function SearchSettings() {
             onChange={(ashby_companies) => setDraft({ ...draft, ashby_companies })}
           />
 
+          <TagListInput
+            label="Workable Companies"
+            hint="Same idea as Ashby — no job search, only per-company boards. Add the slug — from apply.workable.com/<slug>, or from jobs.workable.com/company/.../jobs-at-<slug>"
+            placeholder="e.g. creativechaos, volga-partners"
+            values={draft.workable_companies}
+            onChange={(workable_companies) => setDraft({ ...draft, workable_companies })}
+          />
+
           <div className="flex gap-2">
             <button
               type="button"

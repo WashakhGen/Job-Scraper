@@ -116,6 +116,8 @@ async def _run_scrape_internal(
         # company's board per request — so it needs the configured slug
         # list, unlike every other adapter which just gets a client
         adapter_kwargs["companies"] = app_settings.ashby_companies
+    elif source == "workable":
+        adapter_kwargs["companies"] = app_settings.workable_companies
     adapter = adapter_cls(**adapter_kwargs)  # pyright: ignore[reportCallIssue]  # ty: ignore[unknown-argument]
 
     # 4. Fetch jobs

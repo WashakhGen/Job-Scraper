@@ -522,6 +522,7 @@ async def update_settings(body: AppSettingsOut, db: Annotated[AsyncSession, Depe
     settings_row.locations = body.locations
     settings_row.exclude_keywords = body.exclude_keywords
     settings_row.ashby_companies = body.ashby_companies
+    settings_row.workable_companies = body.workable_companies
     await db.commit()
     await db.refresh(settings_row)
     return settings_row

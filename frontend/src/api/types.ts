@@ -63,6 +63,7 @@ export interface AppSettings {
   locations: string[]
   exclude_keywords: string[]
   ashby_companies: string[]
+  workable_companies: string[]
 }
 
 export type ScheduleFrequency = 'daily' | 'weekly' | 'monthly'

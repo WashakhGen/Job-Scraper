@@ -23,6 +23,7 @@ class AppSettingsOut(BaseModel):
     locations: list[str]
     exclude_keywords: list[str] = []
     ashby_companies: list[str] = []
+    workable_companies: list[str] = []
 
 
 class ManualJobCreate(BaseModel):

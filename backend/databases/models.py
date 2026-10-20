@@ -75,6 +75,7 @@ class AppSettings(Base):
     locations: Mapped[list[str]] = mapped_column(JSON, default=list)
     exclude_keywords: Mapped[list[str]] = mapped_column(JSON, default=list)
     ashby_companies: Mapped[list[str]] = mapped_column(JSON, default=list)
+    workable_companies: Mapped[list[str]] = mapped_column(JSON, default=list)
 
 
 class ScheduleConfig(Base):
